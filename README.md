@@ -50,7 +50,7 @@ khsk様の [LocalFont プラグイン](https://github.com/khsk/AviUtl-LocalFontP
 
 ## その他
 
-1. フォントの除外機能は，フォントをドロップダウンリストから「隠す」だけであって，制御文字 `<s,フォント名>` や `obj.setfont("ＭＳ ゴシック",34)` などを利用して使うことは可能です．
+1. フォントの除外機能は，フォントをドロップダウンリストから「隠す」だけであって，制御文字 `<s,フォント名>` や `obj.setfont("フォント名",34)` などを利用して使うことは可能です．
 
 1. oov様の[テキスト編集補助プラグイン](https://github.com/oov/aviutl_textassist)のフォントリストからも隠せます．
 
@@ -59,6 +59,10 @@ khsk様の [LocalFont プラグイン](https://github.com/khsk/AviUtl-LocalFontP
 このプラグインのフォントの一時追加機能は，アイデア，実装方法を含めて khsk様の [LocalFont プラグイン](https://github.com/khsk/AviUtl-LocalFontPlugin)のものを流用しています．この場ようなで恐縮ですが大変便利なプラグインの公開，感謝申し上げます．
 
 ## 改版履歴
+
+- v1.01 (2024-01-21)
+
+  - ビルドオプション修正．
 
 - v1.00 (2024-01-21)
 
