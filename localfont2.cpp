@@ -11,6 +11,7 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 */
 
 #include <cstdint>
+#include <tuple>
 #include <cwchar>
 #include <string>
 #include <set>
@@ -53,7 +54,7 @@ constexpr struct {
 				partial = false;
 				uint16_t c16 = (static_cast<uint8_t>(str[-1]) << 8) | c;
 				if (0x8260 <= c16 && c16 <= 0x8279) // from 'A' to 'Z' of full-widths'.
-					*str += 0x21; // into 'a' to 'z' of full-widths'.
+					*str = c16 + 0x21; // into 'a' to 'z' of full-widths'.
 			}
 			else if ((0x81 <= c && c <= 0x9f) || (0xe0 <= c && c <= 0xfc)) partial = true;
 			else *str = tolower(c);
@@ -63,8 +64,8 @@ constexpr struct {
 	{
 		for (; *str != L'\0'; str++) {
 			auto c = static_cast<uint16_t>(*str);
-			if (0x0041 <= c && c <= 0x005a) *str ^= 0x0020;
-			else if (0xff21 <= c && c <= 0xff3a) *str ^= 0x0060;
+			if (0x0041 <= c && c <= 0x005a) *str = c ^ 0x0020;
+			else if (0xff21 <= c && c <= 0xff3a) *str = c ^ 0x0060;
 		}
 	}
 } tolower_str;
@@ -76,6 +77,11 @@ void trim_string(char* str, size_t& len)
 	auto start = str; while (len > 0 && std::strchr(white_spaces, *start)) start++, len--;
 	std::memmove(str, start, len + 1);
 }
+size_t trim_string(char* str) {
+	auto len = std::strlen(str);
+	trim_string(str, len);
+	return len;
+}
 
 
 ////////////////////////////////
@@ -86,13 +92,13 @@ void add_fonts(char(&path)[N], size_t tail)
 {
 	WIN32_FIND_DATAA file{};
 
-	strcat_s(path + tail, N - tail, "/*");
+	if (strcpy_s(path + tail, N - tail, "/*") != 0) return;
 	auto h = ::FindFirstFileA(path, &file);
 	if (h == nullptr) return;
 	tail++;
 
 	do {
-		strcpy_s(path + tail, N - tail, file.cFileName);
+		if (strcpy_s(path + tail, N - tail, file.cFileName) != 0) break;
 		if ((file.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) == 0)
 			// add font privately.
 			// file may not be a font... assume the API will handle well.
@@ -113,6 +119,8 @@ void add_fonts(char(&path)[N], size_t tail)
 inline class {
 	std::set<std::string> list{};
 	std::set<std::wstring> listw{};
+
+	// returns whether the current line should skip parsing.
 	static constexpr bool is_linecomment(const char* line)
 	{
 		constexpr const char* begin = "//";
@@ -121,18 +129,18 @@ inline class {
 		return *c == '\0';
 	}
 
-	// count: current "block level", returns new block level.
-	static constexpr bool is_blockcomment(const char* line, int& count)
+	// returns whether the current line should skip parsing.
+	static constexpr bool is_blockcomment(const char* line, int& blocklevel)
 	{
 		constexpr char symb = '%';
 		int cnt = 0;
 		while (*line == symb) cnt++, line++;
 
-		if (count <= 0) {
-			count = cnt;
+		if (blocklevel <= 0) {
+			blocklevel = cnt;
 			return cnt > 0;
 		}
-		if (count == cnt) count = 0;
+		if (blocklevel == cnt) blocklevel = 0;
 		return true;
 	}
 
@@ -145,22 +153,20 @@ public:
 		char line[MAX_PATH];
 		int blocklevel = 0;
 		while (std::fgets(line, std::size(line), file)) {
-			auto len = std::strlen(line);
-
 			// trim the string.
-			trim_string(line, len);
+			auto len = trim_string(line);
 
-			// skip comment lines.
+			// skip lines that are too long or empty,
+			if (len == 0 || len >= LF_FACESIZE) continue;
+
+			// and comment ones.
 			if (is_blockcomment(line, blocklevel)) continue;
 			if (is_linecomment(line)) continue;
-
-			// and those that are too long or empty.
-			if (len == 0 || len >= LF_FACESIZE) continue;
 
 			// uniform the casing.
 			tolower_str(line);
 
-			// prepare wide string.
+			// prepare the wide string.
 			wchar_t linew[LF_FACESIZE];
 			::MultiByteToWideChar(tolower_str.CodePage_shiftjis, 0,
 				line, len + 1, linew, std::size(linew));
@@ -227,10 +233,7 @@ private:
 inline struct : DetourHelper {
 	static int WINAPI detour(HDC hdc, PCSTR logfont, FONTENUMPROCA proc, LPARAM lparam)
 	{
-		struct Cxt {
-			FONTENUMPROCA proc;
-			LPARAM lparam;
-		} cxt{ proc, lparam };
+		auto cxt = std::make_pair(proc, lparam);
 		return original(hdc, logfont, [](const LOGFONTA* lf, auto metric, auto type, LPARAM lparam) {
 			// filter by the face name.
 			char name[std::extent_v<decltype(lf->lfFaceName)>];
@@ -239,8 +242,8 @@ inline struct : DetourHelper {
 			if (excludes(name)) return TRUE;
 
 			// default behavior otherwise.
-			auto* cxt = reinterpret_cast<Cxt*>(lparam);
-			return cxt->proc(lf, metric, type, cxt->lparam);
+			auto& [proc, lp] = *reinterpret_cast<decltype(cxt)*>(lparam);
+			return proc(lf, metric, type, lp);
 		}, reinterpret_cast<LPARAM>(&cxt));
 	}
 	static inline decltype(&detour) original = &EnumFontFamiliesA;
@@ -249,10 +252,7 @@ inline struct : DetourHelper {
 inline struct : DetourHelper {
 	static int WINAPI detour(HDC hdc, PCWSTR logfont, FONTENUMPROCW proc, LPARAM lparam)
 	{
-		struct Cxt {
-			FONTENUMPROCW proc;
-			LPARAM lparam;
-		} cxt{ proc, lparam };
+		auto cxt = std::make_pair(proc, lparam);
 		return original(hdc, logfont, [](const LOGFONTW* lf, auto metric, auto type, LPARAM lparam) {
 			// filter by the face name.
 			wchar_t name[std::extent_v<decltype(lf->lfFaceName)>];
@@ -261,8 +261,8 @@ inline struct : DetourHelper {
 			if (excludes(name)) return TRUE;
 
 			// default behavior otherwise.
-			auto* cxt = reinterpret_cast<Cxt*>(lparam);
-			return cxt->proc(lf, metric, type, cxt->lparam);
+			auto& [proc, lp] = *reinterpret_cast<decltype(cxt)*>(lparam);
+			return proc(lf, metric, type, lp);
 		}, reinterpret_cast<LPARAM>(&cxt));
 	}
 	static inline decltype(&detour) original = &EnumFontFamiliesW;
@@ -276,19 +276,20 @@ void on_attach(HINSTANCE hinst)
 {
 	char path[MAX_PATH];
 	::GetModuleFileNameA(hinst, path, std::size(path));
+
 	auto* name = path;
 	while (auto p = std::strpbrk(name, "\\/")) name = p + 1;
+	auto const size_name = std::size(path) - (name - path);
 
 	// increment the reference count of this DLL.
 	::LoadLibraryA(name);
 
-	// replace the name to the target directory.
-	strcpy_s(name, std::size(path) - (name - path), filenames::TargetFolder);
-
 	// add priavte fonts.
+	strcpy_s(name, size_name, filenames::TargetFolder);
 	add_fonts(path, std::strlen(path));
 
-	strcpy_s(name, std::size(path) - (name - path), filenames::ExcludeFile);
+	// create the exclusion list.
+	strcpy_s(name, size_name, filenames::ExcludeFile);
 	excludes.init(path);
 
 	// override Win32 API.

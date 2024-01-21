@@ -3,9 +3,6 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 
-/detours/include
-/detours/lib.x86
-
 # User-specific files
 *.rsuser
 *.suo
