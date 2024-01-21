@@ -28,8 +28,9 @@ jobs:
       with:
         submodules: recursive
 
-    - name: Add MSBuild to PATH
-      uses: microsoft/setup-msbuild@v1
+    - uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: x86
 
     - name: Compile Detours
       working-directory: ${{env.GITHUB_WORKSPACE}}
@@ -37,6 +38,9 @@ jobs:
         cd detours/src
         (Get-Content .\Makefile -Raw) -replace '/Od','/O2' -replace '/Zi ','' -replace '/MT','/MD' -replace '/Zl','/GL' | Set-Content .\Makefile
         nmake
+
+    - name: Add MSBuild to PATH
+      uses: microsoft/setup-msbuild@v1
 
     - name: Build
       working-directory: ${{env.GITHUB_WORKSPACE}}
