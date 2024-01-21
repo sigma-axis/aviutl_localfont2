@@ -51,7 +51,7 @@ jobs:
     - name: Pack into a folder
       run: |
         mkdir pack
-        copy ${{ matrix.configuration }}/*.auf pack
+        copy ${{ matrix.configuration }}/*.aul pack
         xcopy assets/Fonts pack
         copy *.md pack
         copy LICENSE pack
