@@ -282,11 +282,7 @@ void on_attach(HINSTANCE hinst)
 	auto const size_name = std::size(path) - (name - path);
 
 	// increment the reference count of this DLL.
-	if (static constinit bool loaded = false; loaded) return;
-	else {
-		loaded = true;
-		::LoadLibraryA(name);
-	}
+	::LoadLibraryA(name);
 
 	// add priavte fonts.
 	strcpy_s(name, size_name, filenames::TargetFolder);
@@ -309,6 +305,8 @@ BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwNotification, LPVOID lpReserved
 {
 	switch (dwNotification) {
 	case DLL_PROCESS_ATTACH:
+		if (static constinit bool loaded = false; loaded) break;
+		else loaded = true;
 		on_attach(hInstance);
 		break;
 	}

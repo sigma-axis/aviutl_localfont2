@@ -36,7 +36,7 @@ jobs:
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: |
         cd detours/src
-        (Get-Content .\Makefile -Raw) -replace '/Od','/O2' -replace '/Zi ','' -replace '/MT','/MD' -replace '/Zl','/GL' | Set-Content .\Makefile
+        (Get-Content .\Makefile -Raw) -replace 'CFLAGS=/W4 /WX /Zi /MT /Gy /Gm- /Zl /Od','CFLAGS=/W4 /WX /MD /Gy /Gm- /GL /O2' | Set-Content .\Makefile
         nmake
 
     - name: Add MSBuild to PATH
@@ -52,7 +52,7 @@ jobs:
       run: |
         mkdir pack
         copy ${{ matrix.configuration }}/*.aul pack
-        xcopy assets pack /e
+        xcopy assets pack /e /i
         copy *.md pack
         copy LICENSE pack
       # pick up and add any files you may need.
