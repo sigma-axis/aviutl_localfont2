@@ -32,8 +32,9 @@ jobs:
       uses: microsoft/setup-msbuild@v1
 
     - name: Compile Detours
-      working-directory: ${{env.GITHUB_WORKSPACE}}/detours/src
+      working-directory: ${{env.GITHUB_WORKSPACE}}
       run: |
+        cd detours/src
         (Get-Content .\Makefile -Raw) -replace '/Od','/O2' -replace '/Zi ','' -replace '/MT','/MD' -replace '/Zl','/GL' | Set-Content .\Makefile
         nmake
 
