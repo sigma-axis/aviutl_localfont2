@@ -52,7 +52,7 @@ jobs:
       run: |
         mkdir pack
         copy ${{ matrix.configuration }}/*.aul pack
-        xcopy assets/Fonts pack /e
+        xcopy assets pack /e
         copy *.md pack
         copy LICENSE pack
       # pick up and add any files you may need.
