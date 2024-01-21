@@ -282,7 +282,11 @@ void on_attach(HINSTANCE hinst)
 	auto const size_name = std::size(path) - (name - path);
 
 	// increment the reference count of this DLL.
-	::LoadLibraryA(name);
+	if (static constinit bool loaded = false; loaded) return;
+	else {
+		loaded = true;
+		::LoadLibraryA(name);
+	}
 
 	// add priavte fonts.
 	strcpy_s(name, size_name, filenames::TargetFolder);
