@@ -92,7 +92,7 @@ void add_fonts(char(&path)[N], size_t tail)
 	tail++;
 
 	do {
-		strcat_s(path + tail, N - tail, file.cFileName);
+		strcpy_s(path + tail, N - tail, file.cFileName);
 		if ((file.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) == 0)
 			// add font privately.
 			// file may not be a font... assume the API will handle well.
@@ -113,7 +113,7 @@ void add_fonts(char(&path)[N], size_t tail)
 inline class {
 	std::set<std::string> list{};
 	std::set<std::wstring> listw{};
-	bool is_linecomment(const char* line)
+	static constexpr bool is_linecomment(const char* line)
 	{
 		constexpr const char* begin = "//";
 		auto c = begin;
@@ -122,7 +122,7 @@ inline class {
 	}
 
 	// count: current "block level", returns new block level.
-	bool is_blockcomment(const char* line, int& count)
+	static constexpr bool is_blockcomment(const char* line, int& count)
 	{
 		constexpr char symb = '%';
 		int cnt = 0;
@@ -172,8 +172,9 @@ public:
 
 		std::fclose(file);
 	}
-	bool operator()(const char* name) { return list.contains(name); }
-	bool operator()(const wchar_t* name) { return listw.contains(name); }
+	bool operator()(const char* name) const { return list.contains(name); }
+	bool operator()(const wchar_t* name) const { return listw.contains(name); }
+	int count() const { return list.size(); }
 } excludes;
 
 
@@ -291,7 +292,8 @@ void on_attach(HINSTANCE hinst)
 	excludes.init(path);
 
 	// override Win32 API.
-	DetourHelper::Attach(enum_font_families_A, enum_font_families_W);
+	if (excludes.count() > 0)
+		DetourHelper::Attach(enum_font_families_A, enum_font_families_W);
 }
 
 
