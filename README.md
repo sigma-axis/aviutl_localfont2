@@ -37,10 +37,11 @@ khsk様の [LocalFont プラグイン](https://github.com/khsk/AviUtl-LocalFontP
 
 `Fonts` フォルダ内の `Excludes.txt` にフォント名を1行ずつ記述してください．
 
-- 例:
+- 記述例:
 
   ```
-  // 1行1フォントずつ記述．
+  // Excludes.txt
+  // ↓フォント名は1行に1つずつ記述してください．
   ＭＳ ゴシック
   ＭＳ 明朝
   FixedSys

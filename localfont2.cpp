@@ -281,8 +281,8 @@ void on_attach(HINSTANCE hinst)
 	while (auto p = std::strpbrk(name, "\\/")) name = p + 1;
 	auto const size_name = std::size(path) - (name - path);
 
-	// increment the reference count of this DLL.
-	::LoadLibraryA(name);
+	// backup the dll file name for the future use.
+	std::string dllname{ name };
 
 	// add priavte fonts.
 	strcpy_s(name, size_name, filenames::TargetFolder);
@@ -293,8 +293,18 @@ void on_attach(HINSTANCE hinst)
 	excludes.init(path);
 
 	// override Win32 API.
-	if (excludes.count() > 0)
+	if (excludes.count() > 0) {
+		// needs to increment the reference count of this DLL.
+		::LoadLibraryA(dllname.c_str());
 		DetourHelper::Attach(enum_font_families_A, enum_font_families_W);
+	}
+}
+void on_detach()
+{
+	// restore the API.
+	if (excludes.count() > 0)
+		// will never be called probably.
+		DetourHelper::Detach(enum_font_families_A, enum_font_families_W);
 }
 
 
@@ -305,9 +315,10 @@ BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwNotification, LPVOID lpReserved
 {
 	switch (dwNotification) {
 	case DLL_PROCESS_ATTACH:
-		if (static constinit bool loaded = false; loaded) break;
-		else loaded = true;
 		on_attach(hInstance);
+		break;
+	case DLL_PROCESS_DETACH:
+		if (lpReserved == nullptr) on_detach();
 		break;
 	}
 	return TRUE;
