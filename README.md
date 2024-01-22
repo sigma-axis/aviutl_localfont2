@@ -65,7 +65,7 @@ khsk様の [LocalFont プラグイン](https://github.com/khsk/AviUtl-LocalFontP
 
 ## 改版履歴
 
-- v1.02 (2024-01-??)
+- v1.02 (2024-01-22)
 
   - 除外フォント指定で，フォント名前後の全角空白も無視するように変更．
 
