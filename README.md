@@ -33,6 +33,10 @@ khsk様の [LocalFont プラグイン](https://github.com/khsk/AviUtl-LocalFontP
 
 `Fonts` フォルダの中に AviUtl に追加・使用したいフォントファイルを配置してください．サブフォルダ内のフォントも検索します（階層無制限）．
 
+- 以下の拡張子のファイルをフォントとして追加します:
+
+  `.fon` `.fnt` `.ttf` `.ttc` `.fot` `.otf` `.mmm` `.pfb` `.pfm`
+
 ### フォントの除外方法
 
 `Fonts` フォルダ内の `Excludes.txt` にフォント名を1行ずつ記述してください．

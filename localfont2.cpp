@@ -32,84 +32,179 @@ namespace filenames
 {
 	constexpr const char* TargetFolder = "Fonts";
 	constexpr const char* ExcludeFile = "Fonts/Excludes.txt";
+	constexpr const char* Extensions[] = { "fon", "fnt", "ttf", "ttc", "fot", "otf", "mmm", "pfb", "pfm" };
 }
 
 
 ////////////////////////////////
 // 文字列比較．
 ////////////////////////////////
-constexpr struct {
-	constexpr static uint32_t CodePage_shiftjis = 932;
+struct sjis {
+	constexpr static uint32_t CodePage = 932;
 
-	constexpr char tolower(char c) const {
+	constexpr static bool is_leading(uint8_t c) {
+		return (0x81 <= c && c <= 0x9f) || (0xe0 <= c && c <= 0xfc);
+	}
+	constexpr static bool is_second(uint8_t c) {
+		return (0x40 <= c && c <= 0x7e) || (0x80 <= c && c <= 0xfc);
+	}
+
+	constexpr static char tolower(char c) {
 		// https://blog.yimmo.org/posts/faster-tolower-in-c.html
 		return c ^ ((((0x40 - c) ^ (0x5a - c)) >> 2) & 0x20);
 	}
+	constexpr static char tolower(char c1, char c2) {
+		uint16_t c = (static_cast<uint8_t>(c1) << 8) | static_cast<uint8_t>(c2);
+		if (0x8260 <= c && c <= 0x8279) // from 'A' to 'Z' of full-widths'.
+			return c2 + 0x21; // into 'a' to 'z' of full-widths'.
+		return c2;
+	}
+	constexpr static wchar_t tolower(wchar_t c) {
+		auto sc = static_cast<int16_t>(c); // must be signed this time.
+		return sc
+			^ ((((0x0040 - sc) ^ (0x005a - sc)) >> 10) & 0x0020) // narrow 'A' to 'Z'.
+			^ ((((0xff20 - sc) ^ (0xff3a - sc)) >> 10) & 0x0060); // full-width 'A' to 'Z'.
+	}
 
+	constexpr static auto white_spaces = " \t\v\f\n\r";
+	constexpr static uint16_t white_space_sjis = 0x8140;
+	constexpr static auto white_spaces_w = L" \t\v\f\n\r\u0085\u00a0"
+		L"\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a"
+		L"\u1680\u2028\u2029\u202f\u205f\u3000";
+	constexpr static auto white_spaces_w2 = L"\u180e\u200b\u200c\u200d\u2060\ufeff";
+	static bool is_space(char c) { return std::strchr(white_spaces, c) != nullptr; }
+	constexpr static bool is_space(char c1, char c2) {
+		return ((static_cast<uint8_t>(c1) << 8) | static_cast<uint8_t>(c2)) == white_space_sjis;
+	}
+	static bool is_space(wchar_t c) {
+		return std::wcschr(white_spaces_w, c) != nullptr/* && std::wcschr(white_spaces_w2, c) != nullptr*/;
+	}
+};
+constexpr struct : sjis {
 	constexpr void operator()(char* str) const
 	{
 		for (bool partial = false; *str != '\0'; str++) {
-			auto c = static_cast<uint8_t>(*str);
 			if (partial) {
 				partial = false;
-				uint16_t c16 = (static_cast<uint8_t>(str[-1]) << 8) | c;
-				if (0x8260 <= c16 && c16 <= 0x8279) // from 'A' to 'Z' of full-widths'.
-					*str = c16 + 0x21; // into 'a' to 'z' of full-widths'.
+				*str = tolower(str[-1], *str);
 			}
-			else if ((0x81 <= c && c <= 0x9f) || (0xe0 <= c && c <= 0xfc)) partial = true;
-			else *str = tolower(c);
+			else if (is_leading(*str)) partial = true;
+			else *str = tolower(*str);
 		}
 	}
+	constexpr void operator()(std::string& str) const { (*this)(str.data()); }
 	constexpr void operator()(wchar_t* str) const
 	{
-		for (; *str != L'\0'; str++) {
-			auto c = static_cast<uint16_t>(*str);
-			if (0x0041 <= c && c <= 0x005a) *str = c ^ 0x0020;
-			else if (0xff21 <= c && c <= 0xff3a) *str = c ^ 0x0060;
-		}
+		for (; *str != L'\0'; str++) *str = tolower(*str);
 	}
+	constexpr void operator()(std::wstring& str) const { (*this)(str.data()); }
 } tolower_str;
-void trim_string(char* str, size_t& len)
-{
-	constexpr auto white_spaces = " \t\v\n\r";
+constexpr struct : sjis {
+	size_t operator()(char* str) const {
+		const char* st = str, * ed;
 
-	for (auto* end = str + len; --end >= str && std::strchr(white_spaces, *end);) *end = '\0', len--;
-	auto start = str; while (len > 0 && std::strchr(white_spaces, *start)) start++, len--;
-	std::memmove(str, start, len + 1);
-}
-size_t trim_string(char* str) {
-	auto len = std::strlen(str);
-	trim_string(str, len);
-	return len;
-}
+		// find the beginning.
+		bool partial = false;
+		for (; *st != '\0'; st++) {
+			if (partial) {
+				if (is_space(st[-1], *st)) { partial = false; continue; }
+			}
+			else if (is_leading(*st)) { partial = true; continue; }
+			else if (is_space(*st)) continue;
+
+			ed = st + 1;
+			if (partial) { partial = false; st--; }
+			goto find_tail;
+		}
+		// all characters are white spaces.
+		*str = '\0';
+		return 0;
+
+	find_tail:
+		for (auto cur = ed; *cur != '\0'; cur++) {
+			if (partial) {
+				partial = false;
+				if (is_space(cur[-1], *cur)) continue;
+			}
+			else if (is_leading(*cur)) { partial = true; continue; }
+			else if (is_space(*cur)) continue;
+
+			ed = cur + 1;
+		}
+
+		// move the data to the head.
+		size_t len = ed - st;
+		std::memmove(str, st, sizeof(char) * len);
+		str[len] = '\0';
+		return len;
+	}
+	auto operator()(std::string& str) const { return (*this)(str.data()); }
+	size_t operator()(wchar_t* str) const
+	{
+		const wchar_t* st = str, * ed;
+
+		// find the beginning.
+		for (; *st != L'\0'; st++) {
+			if (!is_space(*st)) {
+				ed = st + 1;
+				goto find_tail;
+			}
+		}
+		// all characters are white spaces.
+		*str = L'\0';
+		return 0;
+
+	find_tail:
+		for (auto cur = ed; *cur != L'\0'; cur++) {
+			if (!is_space(*cur)) ed = cur + 1;
+		}
+
+		// move the data to the head.
+		size_t len = ed - st;
+		std::memmove(str, st, sizeof(wchar_t) * len);
+		str[len] = '\0';
+		return len;
+	}
+	auto operator()(std::wstring& str) const { return (*this)(str.data()); }
+} trim_string;
 
 
 ////////////////////////////////
 // Private フォント追加．
 ////////////////////////////////
 template<size_t N>
-void add_fonts(char(&path)[N], size_t tail)
+void add_fonts(char(&path)[N])
 {
+	std::set<std::string> exts{ std::begin(filenames::Extensions), std::end(filenames::Extensions) };
+	auto is_font_ext = [&exts](char* name) {
+		auto p = std::strrchr(name, '.');
+		if (p == nullptr) return false;
+		tolower_str(++p);
+		return exts.contains(p);
+	};
 	WIN32_FIND_DATAA file{};
 
-	if (strcpy_s(path + tail, N - tail, "/*") != 0) return;
-	auto h = ::FindFirstFileA(path, &file);
-	if (h == nullptr) return;
-	tail++;
+	[&](this const auto& inner, size_t tail) {
+		if (strcpy_s(path + tail, N - tail, "/*") != 0) return;
+		auto h = ::FindFirstFileA(path, &file);
+		if (h == nullptr) return;
+		tail++;
 
-	do {
-		if (strcpy_s(path + tail, N - tail, file.cFileName) != 0) break;
-		if ((file.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) == 0)
-			// add font privately.
-			// file may not be a font... assume the API will handle well.
-			::AddFontResourceExA(path, FR_PRIVATE, 0);
+		do {
+			// skip '.' and '..'
+			if (std::strcmp(file.cFileName, ".") == 0 || std::strcmp(file.cFileName, "..") == 0) continue;
 
-		else if (std::strcmp(file.cFileName, ".") != 0 && std::strcmp(file.cFileName, "..") != 0)
-			// recursively add fonts in subdirectories.
-			add_fonts(path, tail + std::strlen(file.cFileName));
+			if (strcpy_s(path + tail, N - tail, file.cFileName) != 0) break;
+			if ((file.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0)
+				// recursively add fonts in subdirectories.
+				inner(tail + std::strlen(file.cFileName));
+			else if (is_font_ext(file.cFileName))
+				// add font privately.
+				::AddFontResourceExA(path, FR_PRIVATE, 0);
 
-	} while (::FindNextFileA(h, &file));
-	::FindClose(h);
+		} while (::FindNextFileA(h, &file));
+		::FindClose(h);
+	} (std::strlen(path));
 }
 
 
@@ -145,9 +240,9 @@ inline class {
 	}
 
 public:
-	void init(const char* path)
+	void load(const char* path)
 	{
-		FILE* file = nullptr;
+		std::FILE* file = nullptr;
 		if (fopen_s(&file, path, "r") != 0 || file == nullptr) return;
 
 		char line[MAX_PATH];
@@ -168,7 +263,7 @@ public:
 
 			// prepare the wide string.
 			wchar_t linew[LF_FACESIZE];
-			::MultiByteToWideChar(tolower_str.CodePage_shiftjis, 0,
+			::MultiByteToWideChar(sjis::CodePage, 0,
 				line, len + 1, linew, std::size(linew));
 
 			// then add.
@@ -178,9 +273,21 @@ public:
 
 		std::fclose(file);
 	}
-	bool operator()(const char* name) const { return list.contains(name); }
-	bool operator()(const wchar_t* name) const { return listw.contains(name); }
-	int count() const { return list.size(); }
+	bool operator()(const char* name) const
+	{
+		std::string buf{ name };
+		trim_string(buf);
+		tolower_str(buf.data());
+		return list.contains(buf);
+	}
+	bool operator()(const wchar_t* name) const
+	{
+		std::wstring buf{ name };
+		trim_string(buf);
+		tolower_str(buf.data());
+		return listw.contains(buf);
+	}
+	auto count() const { return list.size(); }
 } excludes;
 
 
@@ -231,41 +338,37 @@ private:
 // EnumFontFamiliesA/W 乗っ取り．
 ////////////////////////////////
 inline struct : DetourHelper {
+	// exedit.auf uses this API.
 	static int WINAPI detour(HDC hdc, PCSTR logfont, FONTENUMPROCA proc, LPARAM lparam)
 	{
 		auto cxt = std::make_pair(proc, lparam);
 		return original(hdc, logfont, [](const LOGFONTA* lf, auto metric, auto type, LPARAM lparam) {
 			// filter by the face name.
-			char name[std::extent_v<decltype(lf->lfFaceName)>];
-			strcpy_s(name, lf->lfFaceName + (*lf->lfFaceName == '@' ? 1 : 0));
-			tolower_str(name);
-			if (excludes(name)) return TRUE;
+			if (excludes(lf->lfFaceName + (*lf->lfFaceName == '@' ? 1 : 0))) return TRUE;
 
 			// default behavior otherwise.
 			auto& [proc, lp] = *reinterpret_cast<decltype(cxt)*>(lparam);
 			return proc(lf, metric, type, lp);
 		}, reinterpret_cast<LPARAM>(&cxt));
 	}
-	static inline decltype(&detour) original = &EnumFontFamiliesA;
+	static inline decltype(&detour) original = &::EnumFontFamiliesA;
 } enum_font_families_A;
 
 inline struct : DetourHelper {
+	// other plugins may use this API, such as textassist.auf by oov.
 	static int WINAPI detour(HDC hdc, PCWSTR logfont, FONTENUMPROCW proc, LPARAM lparam)
 	{
 		auto cxt = std::make_pair(proc, lparam);
 		return original(hdc, logfont, [](const LOGFONTW* lf, auto metric, auto type, LPARAM lparam) {
 			// filter by the face name.
-			wchar_t name[std::extent_v<decltype(lf->lfFaceName)>];
-			wcscpy_s(name, lf->lfFaceName + (*lf->lfFaceName == L'@' ? 1 : 0));
-			tolower_str(name);
-			if (excludes(name)) return TRUE;
+			if (excludes(lf->lfFaceName + (*lf->lfFaceName == L'@' ? 1 : 0))) return TRUE;
 
 			// default behavior otherwise.
 			auto& [proc, lp] = *reinterpret_cast<decltype(cxt)*>(lparam);
 			return proc(lf, metric, type, lp);
 		}, reinterpret_cast<LPARAM>(&cxt));
 	}
-	static inline decltype(&detour) original = &EnumFontFamiliesW;
+	static inline decltype(&detour) original = &::EnumFontFamiliesW;
 } enum_font_families_W;
 
 
@@ -286,11 +389,11 @@ void on_attach(HINSTANCE hinst)
 
 	// add priavte fonts.
 	strcpy_s(name, size_name, filenames::TargetFolder);
-	add_fonts(path, std::strlen(path));
+	add_fonts(path);
 
 	// create the exclusion list.
 	strcpy_s(name, size_name, filenames::ExcludeFile);
-	excludes.init(path);
+	excludes.load(path);
 
 	// override Win32 API.
 	if (excludes.count() > 0) {
