@@ -355,7 +355,7 @@ protected:
 		auto cxt = std::make_pair(proc, lparam);
 		return original(hdc, logfont, [](const LogFontT* lf, auto metric, auto type, LPARAM lparam) {
 			// filter by the face name.
-			if (excludes(lf->lfFaceName + (*lf->lfFaceName == at_char ? 1 : 0))) return TRUE;
+			if (excludes(lf->lfFaceName + (lf->lfFaceName[0] == at_char ? 1 : 0))) return TRUE;
 
 			// default behavior otherwise.
 			auto& [proc, lp] = *reinterpret_cast<decltype(cxt)*>(lparam);
