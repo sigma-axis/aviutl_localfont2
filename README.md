@@ -33,6 +33,19 @@ khsk様の [LocalFont プラグイン](https://github.com/khsk/AviUtl-LocalFontP
 
 `Fonts` フォルダの中に AviUtl に追加・使用したいフォントファイルを配置してください．サブフォルダ内のフォントも検索します（階層無制限）．
 
+> ┣ :scroll: `localfont2.aul`<br>
+> ┣ :open_file_folder: `Fonts`<br>
+> ┃ ┣ :memo: `Excludes.txt`<br>
+> ┃ ┣ :page_facing_up: フォント1<br>
+> ┃ ┣ :page_facing_up: フォント2<br>
+> ┃ ┣ :open_file_folder: フォルダA<br>
+> ┃ ┃ ┣ :page_facing_up: フォント3<br>
+> ┃ ┃ ┗ :page_facing_up: フォント4<br>
+> ┃ ┗ :open_file_folder: フォルダB<br>
+> ┃ 　 ┣ :page_facing_up: フォント5<br>
+> ┃ 　 ┗ :open_file_folder: フォルダC<br>
+> ┃ 　 　 ┗ :page_facing_up: フォント6
+
 - 以下の拡張子のファイルをフォントとして追加します:
 
   `.fon` `.fnt` `.ttf` `.ttc` `.fot` `.otf` `.mmm` `.pfb` `.pfm`
