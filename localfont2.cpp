@@ -24,6 +24,7 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 #pragma comment(lib, "detours/lib.x86/detours")
 
 using byte = uint8_t;
+using namespace std::string_view_literals;
 
 ////////////////////////////////
 // 定数定義．
@@ -32,7 +33,7 @@ namespace filenames
 {
 	constexpr auto TargetFolder = "Fonts";
 	constexpr auto ExcludeFile = "Fonts/Excludes.txt";
-	constexpr const char* Extensions[] = {"fon", "fnt", "ttf", "ttc", "fot", "otf", "mmm", "pfb", "pfm"};
+	constexpr const char* Extensions[] = { "fon", "fnt", "ttf", "ttc", "fot", "otf", "mmm", "pfb", "pfm" };
 }
 
 
@@ -68,14 +69,14 @@ struct sjis {
 	}
 
 	// determining white spaces.
-	constexpr static auto white_spaces = " \t\v\f\n\r";
+	constexpr static auto white_spaces = " \t\v\f\n\r"sv;
 	constexpr static uint16_t white_space_sjis = 0x8140;
-	constexpr static auto white_spaces_w = L" \t\v\f\n\r\u3000";
+	constexpr static auto white_spaces_w = L" \t\v\f\n\r\u3000"sv;
 	constexpr static auto white_spaces_w2 =
 		L"\u0085\u00a0" L"\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a"
-		L"\u1680\u2028\u2029\u202f\u205f"; // those not in Shift JIS.
+		L"\u1680\u2028\u2029\u202f\u205f"sv; // those not in Shift JIS.
 	constexpr static auto white_spaces_w3 =
-		L"\u180e\u200b\u200c\u200d\u2060\ufeff"; // those not actually white spaces.
+		L"\u180e\u200b\u200c\u200d\u2060\ufeff"sv; // those not actually white spaces.
 
 	constexpr static bool is_space(char c) { return contains(white_spaces, c); }
 	constexpr static bool is_space(char c1, char c2) {
@@ -88,17 +89,7 @@ struct sjis {
 	}
 
 private:
-	template<class CharT>
-	constexpr static bool contains(const CharT* str, CharT c) {
-		using ct = std::char_traits<CharT>;
-		return ct::find(str, ct::length(str), c) != nullptr;
-	}
-	//template<class CharT>
-	//constexpr static bool contains(const std::basic_string<CharT>& str, CharT c) {
-	//	// std::string::find doesn't work somehow...
-	//	// if white_spaces is declared as constexpr std::string, it's empty at runtime.
-	//	return str.find(c) != str.npos;
-	//}
+	constexpr static bool contains(auto& str, auto c) { return str.find(c) != str.npos; }
 };
 
 // lower casing.
@@ -125,6 +116,7 @@ constexpr struct : sjis {
 // trimming white spaces on the both sides.
 constexpr struct : sjis {
 private:
+	// returns (pos, len)-pair.
 	constexpr static std::pair<size_t, size_t> locate(const char* str)
 	{
 		const char* st = str, * ed;
@@ -159,6 +151,7 @@ private:
 		// all characters are white spaces.
 		return { 0, 0 }; 
 	}
+	// returns (pos, len)-pair.
 	constexpr static std::pair<size_t, size_t> locate(const wchar_t* str)
 	{
 		const wchar_t* st = str, * ed;
@@ -181,10 +174,9 @@ private:
 	}
 
 public:
-	template<class CharT>
-	constexpr std::pair<CharT*, size_t> operator()(CharT* str) const {
+	constexpr auto operator()(auto* str) const {
 		auto [pos, len] = locate(str);
-		return { str + pos, len };
+		return std::make_pair(str + pos, len);
 	}
 } trim_string;
 
@@ -214,7 +206,6 @@ void add_fonts(char(&path)[N])
 
 		do {
 			// skip '.' and '..'
-			using namespace std::string_view_literals;
 			if (file.cFileName == "."sv || file.cFileName == ".."sv) continue;
 
 			if (strcpy_s(path + tail, N - tail, file.cFileName) != 0) break;
