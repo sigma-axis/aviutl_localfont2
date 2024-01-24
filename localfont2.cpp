@@ -78,18 +78,15 @@ struct sjis {
 	constexpr static auto white_spaces_w3 =
 		L"\u180e\u200b\u200c\u200d\u2060\ufeff"sv; // those not actually white spaces.
 
-	constexpr static bool is_space(char c) { return contains(white_spaces, c); }
+	constexpr static bool is_space(char c) { return white_spaces.contains(c); }
 	constexpr static bool is_space(char c1, char c2) {
 		return ((static_cast<uint8_t>(c1) << 8) | static_cast<uint8_t>(c2)) == white_space_sjis;
 	}
 	constexpr static bool is_space(wchar_t c) {
-		return contains(white_spaces_w, c)
-			/*|| contains(white_spaces_w2, c)
-			|| contains(white_spaces_w3, c)*/;
+		return white_spaces_w.contains(c)
+			/*|| white_spaces_w2.contains(c)
+			|| white_spaces_w3.contains(c)*/;
 	}
-
-private:
-	constexpr static bool contains(auto& str, auto c) { return str.find(c) != str.npos; }
 };
 
 // lower casing.
@@ -187,8 +184,7 @@ public:
 template<size_t N>
 void add_fonts(char(&path)[N])
 {
-	std::set<std::string> exts{};
-	exts.insert_range(filenames::Extensions);
+	std::set<std::string> exts{ std::from_range, filenames::Extensions };
 	auto is_font_ext = [&exts](char* name) {
 		auto p = std::strrchr(name, '.');
 		if (p == nullptr) return false;
