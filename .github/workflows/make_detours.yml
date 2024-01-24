@@ -1,0 +1,43 @@
+name: Compile Detours
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Make
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        platform: [x86, x64]
+        retouch: [false, true]
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        repository: microsoft/Detours
+        ref: '4.0.1'
+
+    - uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: ${{ matrix.platform }}
+
+    - name: Retouch
+      if: matrix.retouch
+      run: |
+        cd src
+        (Get-Content .\Makefile -Raw) -replace 'CFLAGS=/W4 /WX /Zi /MT /Gy /Gm- /Zl /Od','CFLAGS=/W4 /WX /MD /Gy /Gm- /GL /O2' | Set-Content .\Makefile
+
+    - name: Compile
+      run: |
+        cd src
+        nmake
+
+    - name: Upload the build as artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        path: lib.${{ matrix.platform }}/*.lib
+        name: detours_${{ matrix.platform }}${{ matrix.retouch && '_retouched' || '' }}
+
