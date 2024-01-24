@@ -33,18 +33,21 @@ khsk様の [LocalFont プラグイン](https://github.com/khsk/AviUtl-LocalFontP
 
 `Fonts` フォルダの中に AviUtl に追加・使用したいフォントファイルを配置してください．サブフォルダ内のフォントも検索します（階層無制限）．
 
-> ┣ :scroll: `localfont2.aul`<br>
-> ┣ :open_file_folder: `Fonts`<br>
-> ┃ ┣ :memo: `Excludes.txt`<br>
-> ┃ ┣ :page_facing_up: フォント1<br>
-> ┃ ┣ :page_facing_up: フォント2<br>
-> ┃ ┣ :open_file_folder: フォルダA<br>
-> ┃ ┃ ┣ :page_facing_up: フォント3<br>
-> ┃ ┃ ┗ :page_facing_up: フォント4<br>
-> ┃ ┗ :open_file_folder: フォルダB<br>
-> ┃ 　 ┣ :page_facing_up: フォント5<br>
-> ┃ 　 ┗ :open_file_folder: フォルダC<br>
-> ┃ 　 　 ┗ :page_facing_up: フォント6
+- 階層構造の例:
+
+  ┣ :gear: `localfont2.aul`<br>
+┣ :open_file_folder: `Fonts`<br>
+┃ ┣ :memo: `Excludes.txt`<br>
+┃ ┣ :page_facing_up: フォント1<br>
+┃ ┣ :page_facing_up: フォント2<br>
+┃ ┣ :open_file_folder: フォルダA<br>
+┃ ┃ ┣ :page_facing_up: フォント3<br>
+┃ ┃ ┗ :page_facing_up: フォント4<br>
+┃ ┗ :open_file_folder: フォルダB<br>
+┃ 　 ┣ :page_facing_up: フォント5<br>
+┃ 　 ┗ :open_file_folder: フォルダC<br>
+┃ 　 　 ┗ :page_facing_up: フォント6
+
 
 - 以下の拡張子のファイルをフォントとして追加します:
 
@@ -68,9 +71,12 @@ khsk様の [LocalFont プラグイン](https://github.com/khsk/AviUtl-LocalFontP
 
 ## その他
 
-1. フォントの除外機能は，フォントをドロップダウンリストから「隠す」だけであって，制御文字 `<s,フォント名>` や `obj.setfont("フォント名",34)` などを利用して使うことは可能です．
+1. フォントの除外機能は，フォントを設定ダイアログのドロップダウンリストから「隠す」だけであって，制御文字 `<s,フォント名>` や `obj.setfont("フォント名",34)` などを利用して使うことは可能です．
 
 1. oov様の[テキスト編集補助プラグイン](https://github.com/oov/aviutl_textassist)のフォントリストからも隠せます．
+
+> [!NOTE]
+> 追加したフォントを除外リストに入れた場合，ドロップダウンリストには表示されませんが，制御文字 `<s>` や スクリプト `obj.setfont()` などでは使えるようになります．
 
 ## 謝辞
 
