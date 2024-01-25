@@ -58,14 +58,13 @@ struct sjis {
 	}
 	constexpr static char tolower(char c1, char c2) {
 		// lowers 'A' to 'Z' of full-widths'.
-		return (c1 ^ 0x82) != 0 ? c2 :
+		return c1 != '\x82' ? c2 :
 			c2 + ((((0x5f - c2) ^ (0x79 - c2)) >> 7) & 0x21);
 	}
 	constexpr static wchar_t tolower(wchar_t c) {
-		auto sc = static_cast<int16_t>(c); // must be signed this time.
-		return sc
-			^ ((((0x0040 - sc) ^ (0x005a - sc)) >> 10) & 0x0020) // narrow 'A' to 'Z'.
-			^ ((((0xff20 - sc) ^ (0xff3a - sc)) >> 10) & 0x0060); // full-width 'A' to 'Z'.
+		return c
+			^ ((((0x0040 - c) ^ (0x005a - c)) >> 10) & 0x0020) // narrow 'A' to 'Z'.
+			^ ((((0xff20 - c) ^ (0xff3a - c)) >> 10) & 0x0060); // full-width 'A' to 'Z'.
 	}
 
 	// determining white spaces.
