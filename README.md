@@ -37,16 +37,16 @@ khsk様の [LocalFont プラグイン](https://github.com/khsk/AviUtl-LocalFontP
 
   ┣ :gear: `localfont2.aul`<br>
 ┣ :open_file_folder: `Fonts`<br>
-┃ ┣ :memo: `Excludes.txt`<br>
-┃ ┣ :page_facing_up: フォント1<br>
-┃ ┣ :page_facing_up: フォント2<br>
-┃ ┣ :open_file_folder: フォルダA<br>
-┃ ┃ ┣ :page_facing_up: フォント3<br>
-┃ ┃ ┗ :page_facing_up: フォント4<br>
-┃ ┗ :open_file_folder: フォルダB<br>
-┃ 　 ┣ :page_facing_up: フォント5<br>
-┃ 　 ┗ :open_file_folder: フォルダC<br>
-┃ 　 　 ┗ :page_facing_up: フォント6
+┃&numsp;┣ :memo: `Excludes.txt`<br>
+┃&numsp;┣ :page_facing_up: フォント1<br>
+┃&numsp;┣ :page_facing_up: フォント2<br>
+┃&numsp;┣ :open_file_folder: フォルダA<br>
+┃&numsp;┃&numsp;┣ :page_facing_up: フォント3<br>
+┃&numsp;┃&numsp;┗ :page_facing_up: フォント4<br>
+┃&numsp;┗ :open_file_folder: フォルダB<br>
+┃&numsp;&ensp;&numsp;┣ :page_facing_up: フォント5<br>
+┃&numsp;&ensp;&numsp;┗ :open_file_folder: フォルダC<br>
+┃&numsp;&ensp;&numsp;&ensp;&numsp;┗ :page_facing_up: フォント6
 
 
 - 以下の拡張子のファイルをフォントとして追加します:
@@ -84,11 +84,11 @@ khsk様の [LocalFont プラグイン](https://github.com/khsk/AviUtl-LocalFontP
 
 ## 改版履歴
 
-- v1.05 (2024-01-25)
+- **v1.05** (2024-01-25)
 
   - 全角アルファベットの大文字と小文字を同一視できていなかったのを修正．
 
-- v1.04 (2024-01-25)
+- **v1.04** (2024-01-25)
 
   - `README.md` や `Excludes.txt` 内のコメント説明を更新．
 
@@ -96,7 +96,7 @@ khsk様の [LocalFont プラグイン](https://github.com/khsk/AviUtl-LocalFontP
 
   - バイナリとしてはほぼ変更なしですがそれなりに形になったので，区切りとして付随ドキュメント更新も兼ねてバージョン上げ．
 
-- v1.03 (2024-01-23)
+- **v1.03** (2024-01-23)
 
   - `Excludes.txt` でブロックコメント開始・終了の行が長すぎると認識されなかったのを修正．
 
@@ -106,17 +106,17 @@ khsk様の [LocalFont プラグイン](https://github.com/khsk/AviUtl-LocalFontP
 
   - その他小さな修正，コード整理．
 
-- v1.02 (2024-01-22)
+- **v1.02** (2024-01-22)
 
   - 除外フォント指定で，フォント名前後の全角空白も無視するように変更．
 
   - 追加フォントの拡張子をチェックするように変更．
 
-- v1.01 (2024-01-21)
+- **v1.01** (2024-01-21)
 
   - ビルドオプション修正．
 
-- v1.00 (2024-01-21)
+- **v1.00** (2024-01-21)
 
   - 初版．
 
