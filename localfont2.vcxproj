@@ -61,7 +61,6 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;LOCALFONT2_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
-      <AdditionalIncludeDirectories>detours/include/;</AdditionalIncludeDirectories>
       <AdditionalOptions>/source-charset:utf-8 /execution-charset:shift_jis %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -80,7 +79,6 @@
       <PreprocessorDefinitions>WIN32;NDEBUG;LOCALFONT2_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
-      <AdditionalIncludeDirectories>detours/include/;</AdditionalIncludeDirectories>
       <AdditionalOptions>/source-charset:utf-8 /execution-charset:shift_jis %(AdditionalOptions)</AdditionalOptions>
       <DebugInformationFormat>None</DebugInformationFormat>
       <OmitFramePointers>true</OmitFramePointers>

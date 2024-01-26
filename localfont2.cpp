@@ -20,7 +20,7 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 
-#include <detours.h>
+#include "detours/include/detours.h"
 #pragma comment(lib, "detours/lib.x86/detours")
 
 using byte = uint8_t;
@@ -43,6 +43,41 @@ namespace filenames
 struct sjis {
 	constexpr static uint32_t CodePage = 932;
 
+	// conversion between wide character string.
+	static int cnt_wide_str(const char* str, int cnt_str = -1) {
+		return to_wide_str(nullptr, 0, str, cnt_str);
+	}
+	static int to_wide_str(wchar_t* wstr, int cnt_wstr, const char* str, int cnt_str = -1) {
+		return ::MultiByteToWideChar(CodePage, 0, str, cnt_str, wstr, cnt_wstr);
+	}
+	template<size_t cnt_wstr>
+	static int to_wide_str(wchar_t(&wstr)[cnt_wstr], const char* str, int cnt_str = -1) {
+		return to_wide_str(wstr, int{ cnt_wstr }, str, cnt_str);
+	}
+	static std::wstring to_wide_str(const std::string& str) {
+		size_t cntw = cnt_wide_str(str.c_str());
+		std::wstring ret{ cntw - 1, L'\0', std::allocator<wchar_t>{} };
+		to_wide_str(ret.data(), cntw, str.c_str());
+		return ret;
+	}
+
+	static int cnt_sjis_str(const wchar_t* wstr, int cnt_wstr = -1) {
+		return from_wide_str(nullptr, 0, wstr, cnt_wstr);
+	}
+	static int from_wide_str(char* str, int cnt_str, const wchar_t* wstr, int cnt_wstr = -1) {
+		return ::WideCharToMultiByte(CodePage, 0, wstr, cnt_wstr, str, cnt_str, nullptr, nullptr);
+	}
+	template<size_t cnt_str>
+	static int from_wide_str(char(&str)[cnt_str], const wchar_t* wstr, int cnt_wstr = -1) {
+		return from_wide_str(str, int{ cnt_str }, wstr, cnt_wstr);
+	}
+	static std::string from_wide_str(const std::wstring& wstr) {
+		size_t cnt = cnt_sjis_str(wstr.c_str());
+		std::string ret{ cnt - 1, '\0', std::allocator<char>{} };
+		from_wide_str(ret.data(), cnt, wstr.c_str());
+		return ret;
+	}
+
 	// multibyte parsing.
 	constexpr static bool is_leading(uint8_t c) {
 		return (0x81 <= c && c <= 0x9f) || (0xe0 <= c && c <= 0xfc);
@@ -54,17 +89,17 @@ struct sjis {
 	// casing control.
 	constexpr static char tolower(char c) {
 		// https://blog.yimmo.org/posts/faster-tolower-in-c.html
-		return c ^ ((((0x40 - c) ^ (0x5a - c)) >> 2) & 0x20);
+		return c ^ ((((0x40 - c) ^ (0x5a - c)) >> 3) & 0x20);
 	}
 	constexpr static char tolower(char c1, char c2) {
 		// lowers 'A' to 'Z' of full-widths'.
 		return c1 != '\x82' ? c2 :
-			c2 + ((((0x5f - c2) ^ (0x79 - c2)) >> 7) & 0x21);
+			c2 + ((((0x5f - c2) ^ (0x79 - c2)) >> 8) & 0x21);
 	}
 	constexpr static wchar_t tolower(wchar_t c) {
 		return c
-			^ ((((0x0040 - c) ^ (0x005a - c)) >> 10) & 0x0020) // narrow 'A' to 'Z'.
-			^ ((((0xff20 - c) ^ (0xff3a - c)) >> 10) & 0x0060); // full-width 'A' to 'Z'.
+			^ ((((0x0040 - c) ^ (0x005a - c)) >> 11) & 0x0020) // narrow 'A' to 'Z'.
+			^ ((((0xff20 - c) ^ (0xff3a - c)) >> 11) & 0x0060); // full-width 'A' to 'Z'.
 	}
 
 	// determining white spaces.
@@ -273,7 +308,7 @@ public:
 
 			// prepare the wide string.
 			wchar_t linew[LF_FACESIZE];
-			::MultiByteToWideChar(sjis::CodePage, 0, begin, len + 1, linew, std::size(linew));
+			sjis::to_wide_str(linew, begin);
 
 			// then add.
 			list.emplace(begin);
@@ -344,16 +379,16 @@ private:
 ////////////////////////////////
 struct EnumFontFamiliesBase : DetourHelper {
 protected:
-	template<auto& original, class StrT, class ProcT, class LogFontT, auto at_char>
+	template<auto& original, class StrT, class ProcT, auto at_char>
 	static int WINAPI detour_template(HDC hdc, StrT logfont, ProcT proc, LPARAM lparam)
 	{
 		auto cxt = std::make_pair(proc, lparam);
-		return original(hdc, logfont, [](const LogFontT* lf, auto metric, auto type, LPARAM lparam) {
+		return original(hdc, logfont, [](auto lf, auto metric, auto type, LPARAM lparam) {
 			// filter by the face name.
 			if (excludes(lf->lfFaceName + (lf->lfFaceName[0] == at_char ? 1 : 0))) return TRUE;
 
 			// default behavior otherwise.
-			auto& [proc, lp] = *reinterpret_cast<decltype(cxt)*>(lparam);
+			auto [proc, lp] = *reinterpret_cast<decltype(cxt)*>(lparam);
 			return proc(lf, metric, type, lp);
 		}, reinterpret_cast<LPARAM>(&cxt));
 	}
@@ -362,13 +397,13 @@ protected:
 constexpr struct : EnumFontFamiliesBase {
 	// exedit.auf uses this API.
 	static inline auto* original = &::EnumFontFamiliesA;
-	constexpr static auto& detour = detour_template<original, PCSTR, FONTENUMPROCA, LOGFONTA, '@'>;
+	constexpr static auto& detour = detour_template<original, PCSTR, FONTENUMPROCA, '@'>;
 } enum_font_families_A;
 
 constexpr struct : EnumFontFamiliesBase {
 	// other plugins may use this API, such as textassist.auf by oov.
 	static inline auto* original = &::EnumFontFamiliesW;
-	constexpr static auto& detour = detour_template<original, PCWSTR, FONTENUMPROCW, LOGFONTW, L'@'>;
+	constexpr static auto& detour = detour_template<original, PCWSTR, FONTENUMPROCW, L'@'>;
 } enum_font_families_W;
 
 
