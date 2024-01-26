@@ -31,9 +31,9 @@ using namespace std::string_view_literals;
 ////////////////////////////////
 namespace filenames
 {
-	constexpr auto TargetFolder = "Fonts";
-	constexpr auto ExcludeFile = "Fonts/Excludes.txt";
-	constexpr const char* Extensions[] = { "fon", "fnt", "ttf", "ttc", "fot", "otf", "mmm", "pfb", "pfm" };
+	constexpr auto TargetFolder = L"Fonts";
+	constexpr auto ExcludeFile = L"Fonts/Excludes.txt";
+	constexpr const wchar_t* Extensions[] = { L"fon", L"fnt", L"ttf", L"ttc", L"fot", L"otf", L"mmm", L"pfb", L"pfm" };
 }
 
 
@@ -54,12 +54,14 @@ struct sjis {
 	static int to_wide_str(wchar_t(&wstr)[cnt_wstr], const char* str, int cnt_str = -1) {
 		return to_wide_str(wstr, int{ cnt_wstr }, str, cnt_str);
 	}
-	static std::wstring to_wide_str(const std::string& str) {
-		size_t cntw = cnt_wide_str(str.c_str());
+	static std::wstring to_wide_str(const char* str, int cnt_str = -1) {
+		size_t cntw = cnt_wide_str(str, cnt_str);
 		std::wstring ret{ cntw - 1, L'\0', std::allocator<wchar_t>{} };
-		to_wide_str(ret.data(), cntw, str.c_str());
+		to_wide_str(ret.data(), cntw, str, cnt_str);
+		if (cnt_str >= 0) ret.data()[cntw - 1] = L'\0';
 		return ret;
 	}
+	static std::wstring to_wide_str(const std::string& str) { return to_wide_str(str.c_str()); }
 
 	static int cnt_sjis_str(const wchar_t* wstr, int cnt_wstr = -1) {
 		return from_wide_str(nullptr, 0, wstr, cnt_wstr);
@@ -71,12 +73,14 @@ struct sjis {
 	static int from_wide_str(char(&str)[cnt_str], const wchar_t* wstr, int cnt_wstr = -1) {
 		return from_wide_str(str, int{ cnt_str }, wstr, cnt_wstr);
 	}
-	static std::string from_wide_str(const std::wstring& wstr) {
-		size_t cnt = cnt_sjis_str(wstr.c_str());
+	static std::string from_wide_str(const wchar_t* wstr, int cnt_wstr = -1) {
+		size_t cnt = cnt_sjis_str(wstr, cnt_wstr);
 		std::string ret{ cnt - 1, '\0', std::allocator<char>{} };
-		from_wide_str(ret.data(), cnt, wstr.c_str());
+		from_wide_str(ret.data(), cnt, wstr, cnt_wstr);
+		if (cnt_wstr >= 0) ret.data()[cnt - 1] = '\0';
 		return ret;
 	}
+	static std::string from_wide_str(const std::wstring& wstr) { return from_wide_str(wstr.c_str()); }
 
 	// multibyte parsing.
 	constexpr static bool is_leading(uint8_t c) {
@@ -216,39 +220,39 @@ public:
 // Private フォント追加．
 ////////////////////////////////
 template<size_t N>
-void add_fonts(char(&path)[N])
+void add_fonts(wchar_t(&path)[N])
 {
-	std::set<std::string> exts{ std::from_range, filenames::Extensions };
-	auto is_font_ext = [&exts](char* name) {
-		auto p = std::strrchr(name, '.');
+	std::set<std::wstring> exts{ std::from_range, filenames::Extensions };
+	auto is_font_ext = [&exts](wchar_t* name) {
+		auto p = std::wcsrchr(name, L'.');
 		if (p == nullptr) return false;
 		tolower_str(++p);
 		return exts.contains(p);
 	};
-	WIN32_FIND_DATAA file{};
+	WIN32_FIND_DATAW file{};
 
 	// core loop for the recursion.
 	[&](this const auto& inner, size_t tail) {
-		if (strcpy_s(path + tail, N - tail, "/*") != 0) return;
-		auto h = ::FindFirstFileA(path, &file);
+		if (wcscpy_s(path + tail, N - tail, L"/*") != 0) return;
+		auto h = ::FindFirstFileW(path, &file);
 		if (h == nullptr) return;
 		tail++;
 
 		do {
 			// skip '.' and '..'
-			if (file.cFileName == "."sv || file.cFileName == ".."sv) continue;
+			if (file.cFileName == L"."sv || file.cFileName == L".."sv) continue;
 
-			if (strcpy_s(path + tail, N - tail, file.cFileName) != 0) break;
+			if (wcscpy_s(path + tail, N - tail, file.cFileName) != 0) break;
 			if ((file.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0)
 				// recursively add fonts in subdirectories.
-				inner(tail + std::strlen(file.cFileName));
+				inner(tail + std::wcslen(file.cFileName));
 			else if (is_font_ext(file.cFileName))
 				// add font privately.
-				::AddFontResourceExA(path, FR_PRIVATE, 0);
+				::AddFontResourceExW(path, FR_PRIVATE, 0);
 
-		} while (::FindNextFileA(h, &file));
+		} while (::FindNextFileW(h, &file));
 		::FindClose(h);
-	} (std::strlen(path));
+	} (std::wcslen(path));
 }
 
 
@@ -284,10 +288,11 @@ inline class {
 	}
 
 public:
-	void load(const char* path)
+	void load(const wchar_t* path)
 	{
 		std::FILE* file = nullptr;
-		if (fopen_s(&file, path, "r") != 0 || file == nullptr) return;
+		if (fopen_s(&file, sjis::from_wide_str(path).c_str(), "r") != 0) return;
+		if(file == nullptr) return;
 
 		char line[MAX_PATH];
 		uint32_t blocklevel = 0;
@@ -412,28 +417,28 @@ constexpr struct : EnumFontFamiliesBase {
 ////////////////////////////////
 void on_attach(HINSTANCE hinst)
 {
-	char path[MAX_PATH];
-	::GetModuleFileNameA(hinst, path, std::size(path));
+	wchar_t path[MAX_PATH];
+	::GetModuleFileNameW(hinst, path, std::size(path));
 
 	auto* name = path;
-	while (auto p = std::strpbrk(name, "\\/")) name = p + 1;
+	while (auto p = std::wcspbrk(name, L"\\/")) name = p + 1;
 	auto const size_name = std::size(path) - (name - path);
 
 	// backup the dll file name for the future use.
-	std::string dllname{ name };
+	std::wstring dllname{ name };
 
 	// add priavte fonts.
-	strcpy_s(name, size_name, filenames::TargetFolder);
+	wcscpy_s(name, size_name, filenames::TargetFolder);
 	add_fonts(path);
 
 	// create the exclusion list.
-	strcpy_s(name, size_name, filenames::ExcludeFile);
+	wcscpy_s(name, size_name, filenames::ExcludeFile);
 	excludes.load(path);
 
 	// override Win32 API.
 	if (excludes.count() > 0) {
 		// needs to increment the reference count of this DLL.
-		::LoadLibraryA(dllname.c_str());
+		::LoadLibraryW(dllname.c_str());
 		DetourHelper::Attach(enum_font_families_A, enum_font_families_W);
 	}
 }
