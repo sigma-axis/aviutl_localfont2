@@ -69,6 +69,14 @@ khsk様の [LocalFont プラグイン](https://github.com/khsk/AviUtl-LocalFontP
 
 記述法に関しては `Excludes.txt` 内のコメントにも説明があるので，そちらもご確認ください．
 
+#### ホワイトリストモード
+
+`Excludes.txt` のファイル名を `Whitelist.txt` に変更すると，指定したフォントのみが表示されるようになります．記述方法は `Excludes.txt` と同じです．
+
+> [!NOTE]
+> `Excludes.txt` と `Whitelist.txt` が同時に存在する場合，`Whitelist.txt` が優先されてホワイトリストモードになります．この場合 `Excludes.txt` は無視されます．
+
+
 ## その他
 
 1. フォントの除外機能は，フォントを設定ダイアログのドロップダウンリストから「隠す」だけであって，制御文字 `<s,フォント名>` やスクリプトの `obj.setfont("フォント名",34)` などを利用して使うことは可能です．

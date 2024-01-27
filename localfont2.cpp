@@ -20,6 +20,9 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 
+#include <Shlwapi.h>
+#pragma comment(lib, "shlwapi")
+
 #include "detours/include/detours.h"
 #pragma comment(lib, "detours/lib.x86/detours")
 
@@ -33,6 +36,7 @@ namespace filenames
 {
 	constexpr auto TargetFolder = L"Fonts";
 	constexpr auto ExcludeFile = L"Fonts/Excludes.txt";
+	constexpr auto WhitelistFile = L"Fonts/Whitelist.txt";
 	constexpr const wchar_t* Extensions[] = { L"fon", L"fnt", L"ttf", L"ttc", L"fot", L"otf", L"mmm", L"pfb", L"pfm" };
 }
 
@@ -56,9 +60,9 @@ struct sjis {
 	}
 	static std::wstring to_wide_str(const char* str, int cnt_str = -1) {
 		size_t cntw = cnt_wide_str(str, cnt_str);
+		if (cnt_str >= 0 && str[cnt_str - 1] != '\0') cntw++;
 		std::wstring ret{ cntw - 1, L'\0', std::allocator<wchar_t>{} };
 		to_wide_str(ret.data(), cntw, str, cnt_str);
-		if (cnt_str >= 0) ret.data()[cntw - 1] = L'\0';
 		return ret;
 	}
 	static std::wstring to_wide_str(const std::string& str) { return to_wide_str(str.c_str()); }
@@ -75,24 +79,26 @@ struct sjis {
 	}
 	static std::string from_wide_str(const wchar_t* wstr, int cnt_wstr = -1) {
 		size_t cnt = cnt_sjis_str(wstr, cnt_wstr);
+		if (cnt_wstr >= 0 && wstr[cnt_wstr - 1] != L'\0') cnt++;
 		std::string ret{ cnt - 1, '\0', std::allocator<char>{} };
 		from_wide_str(ret.data(), cnt, wstr, cnt_wstr);
-		if (cnt_wstr >= 0) ret.data()[cnt - 1] = '\0';
 		return ret;
 	}
 	static std::string from_wide_str(const std::wstring& wstr) { return from_wide_str(wstr.c_str()); }
 
 	// multibyte parsing.
-	constexpr static bool is_leading(uint8_t c) {
-		return (0x81 <= c && c <= 0x9f) || (0xe0 <= c && c <= 0xfc);
+	constexpr static bool is_leading(char c) {
+		return ('\x81' <= c && c <= '\x9f') || ('\xe0' <= c && c <= '\xfc');
 	}
-	constexpr static bool is_second(uint8_t c) {
-		return (0x40 <= c && c <= 0x7e) || (0x80 <= c && c <= 0xfc);
+	constexpr static bool is_second(char c) {
+		return ('\x40' <= c && c <= '\x7e') || ('\x80' <= c && c <= '\xfc');
 	}
 
 	// casing control.
 	constexpr static char tolower(char c) {
 		// https://blog.yimmo.org/posts/faster-tolower-in-c.html
+		// needs to shift one more bit than the reference;
+		// c = '\xc1' would fail otherwise.
 		return c ^ ((((0x40 - c) ^ (0x5a - c)) >> 3) & 0x20);
 	}
 	constexpr static char tolower(char c1, char c2) {
@@ -224,8 +230,8 @@ void add_fonts(wchar_t(&path)[N])
 {
 	std::set<std::wstring> exts{ std::from_range, filenames::Extensions };
 	auto is_font_ext = [&exts](wchar_t* name) {
-		auto p = std::wcsrchr(name, L'.');
-		if (p == nullptr) return false;
+		auto p = ::PathFindExtensionW(name);
+		if (*p == L'\0') return false;
 		tolower_str(++p);
 		return exts.contains(p);
 	};
@@ -262,6 +268,7 @@ void add_fonts(wchar_t(&path)[N])
 inline class {
 	std::set<std::string> list{};
 	std::set<std::wstring> listw{};
+	bool white_mode = false;
 
 	// returns whether the current line should skip parsing.
 	static constexpr bool is_linecomment(const char* line)
@@ -277,7 +284,7 @@ inline class {
 	{
 		constexpr char symb = '%';
 		uint32_t cnt = 0;
-		while (*line == symb) cnt++, line++;
+		while (line[cnt] == symb) cnt++;
 
 		if (blocklevel == 0) {
 			blocklevel = cnt;
@@ -288,11 +295,11 @@ inline class {
 	}
 
 public:
-	void load(const wchar_t* path)
+	bool load(const wchar_t* path, bool whitelist)
 	{
 		std::FILE* file = nullptr;
-		if (fopen_s(&file, sjis::from_wide_str(path).c_str(), "r") != 0) return;
-		if(file == nullptr) return;
+		if ((fopen_s(&file, sjis::from_wide_str(path).c_str(), "r") != 0) || file == nullptr) return false;
+		__assume(file != nullptr);
 
 		char line[MAX_PATH];
 		uint32_t blocklevel = 0;
@@ -321,6 +328,9 @@ public:
 		}
 
 		std::fclose(file);
+
+		white_mode = whitelist;
+		return true;
 	}
 	template<class CharT>
 	bool operator()(const CharT* name) const
@@ -328,11 +338,14 @@ public:
 		auto [pos, len] = trim_string(name);
 		std::basic_string<CharT> buf{ pos, len };
 		tolower_str(buf);
-		if constexpr (std::is_same_v<CharT, wchar_t>)
-			return listw.contains(buf);
-		else return list.contains(buf);
+		return [&, this] {
+			if constexpr (std::is_same_v<CharT, wchar_t>)
+				return listw.contains(buf);
+			else return list.contains(buf);
+		}() ^ white_mode;
 	}
 	auto count() const { return list.size(); }
+	bool is_whitelist()const { return white_mode; }
 } excludes;
 
 
@@ -420,8 +433,7 @@ void on_attach(HINSTANCE hinst)
 	wchar_t path[MAX_PATH];
 	::GetModuleFileNameW(hinst, path, std::size(path));
 
-	auto* name = path;
-	while (auto p = std::wcspbrk(name, L"\\/")) name = p + 1;
+	auto* name = ::PathFindFileNameW(path);
 	auto const size_name = std::size(path) - (name - path);
 
 	// backup the dll file name for the future use.
@@ -432,8 +444,11 @@ void on_attach(HINSTANCE hinst)
 	add_fonts(path);
 
 	// create the exclusion list.
-	wcscpy_s(name, size_name, filenames::ExcludeFile);
-	excludes.load(path);
+	wcscpy_s(name, size_name, filenames::WhitelistFile);
+	if (!excludes.load(path, true)) {
+		wcscpy_s(name, size_name, filenames::ExcludeFile);
+		excludes.load(path, false);
+	}
 
 	// override Win32 API.
 	if (excludes.count() > 0) {
