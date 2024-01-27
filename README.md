@@ -55,7 +55,7 @@ khsk様の [LocalFont プラグイン](https://github.com/khsk/AviUtl-LocalFontP
 
 ### フォントの除外方法
 
-`Fonts` フォルダ内の `Excludes.txt` にフォント名を1行ずつ記述してください．
+`Fonts` フォルダ内の `Excludes.txt` に除外したいフォント名を1行ずつ記述してください．
 
 - 記述例:
 
@@ -71,7 +71,7 @@ khsk様の [LocalFont プラグイン](https://github.com/khsk/AviUtl-LocalFontP
 
 #### ホワイトリストモード
 
-`Excludes.txt` のファイル名を `Whitelist.txt` に変更すると，指定したフォントのみが表示されるようになります．記述方法は `Excludes.txt` と同じです．
+`Excludes.txt` のファイル名を `Whitelist.txt` に変更すると，逆に指定したフォントのみが表示されるようになります．記述方法は `Excludes.txt` と同じです．
 
 > [!NOTE]
 > `Excludes.txt` と `Whitelist.txt` が同時に存在する場合，`Whitelist.txt` が優先されてホワイトリストモードになります．この場合 `Excludes.txt` は無視されます．
@@ -83,7 +83,7 @@ khsk様の [LocalFont プラグイン](https://github.com/khsk/AviUtl-LocalFontP
 
 1. oov様の[テキスト編集補助プラグイン](https://github.com/oov/aviutl_textassist)のフォントリストからも隠せます．
 
-> [!NOTE]
+> [!TIP]
 > 追加したフォントを除外リストに入れた場合，ドロップダウンリストには表示されませんが，制御文字 `<s>` や スクリプト `obj.setfont()` などでは使えるようになります．
 
 ## 謝辞
@@ -91,6 +91,10 @@ khsk様の [LocalFont プラグイン](https://github.com/khsk/AviUtl-LocalFontP
 このプラグインのフォントの一時追加機能は，アイデア，実装方法を含めて khsk様の [LocalFont プラグイン](https://github.com/khsk/AviUtl-LocalFontPlugin)のものを流用しています．この場ようなで恐縮ですが大変便利なプラグインの公開，感謝申し上げます．
 
 ## 改版履歴
+
+- **v1.10** (2024-01-28)
+
+  - ホワイトリストモードの追加．指定したフォント以外が非表示になります．
 
 - **v1.06** (2024-01-27)
 
