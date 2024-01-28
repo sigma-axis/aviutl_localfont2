@@ -78,7 +78,7 @@ khsk様の [LocalFont プラグイン](https://github.com/khsk/AviUtl-LocalFontP
 
 #### `全フォントリスト.exa` について
 
-タイムラインにドラッグ&ドロップしてメインウィンドウに表示させるとスクリプトが動いて，コンソールに現在ドロップダウンリストから選択可能なフォント一覧を出力します．フォントリスト作成の補助に利用してください．
+タイムラインにドラッグ&ドロップしてメインウィンドウに表示させるとスクリプトが動いて，コンソールに現在ドロップダウンリストから選択可能なフォント一覧を出力できるエイリアスファイルです．フォントリスト作成の補助に利用してください．
 
 - 動作には [patch.aul](https://github.com/nazonoSAUNA/patch.aul) と [LuaJIT](https://luajit.org/) が必要です．LuaJITは[こちら](https://github.com/Per-Terra/LuaJIT-Auto-Builds/releases)からダウンロードすることでも取得できます．
 
@@ -131,6 +131,12 @@ khsk様の [LocalFont プラグイン](https://github.com/khsk/AviUtl-LocalFontP
 このプラグインのフォントの一時追加機能は，アイデア，実装方法を含めて khsk様の [LocalFont プラグイン](https://github.com/khsk/AviUtl-LocalFontPlugin)のものを流用しています．この場ようなで恐縮ですが大変便利なプラグインの公開，感謝申し上げます．
 
 ## 改版履歴
+
+- **v1.11** (2024-01-28)
+
+  - ホワイトリストモードでフォントが1つもないとき，従来のブラックリストモードで動作するように変更．
+
+  - 全フォントのリストが出力できるエイリアスファイルを同梱．
 
 - **v1.10** (2024-01-28)
 
