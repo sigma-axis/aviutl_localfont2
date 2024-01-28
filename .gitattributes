@@ -3,6 +3,7 @@
 ###############################################################################
 * text=auto
 assets/Fonts/Excludes.txt text working-tree-encoding=cp932 eol=crlf
+*.exa text working-tree-encoding=cp932 eol=crlf
 
 ###############################################################################
 # Set default behavior for command prompt diff.

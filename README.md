@@ -76,6 +76,12 @@ khsk様の [LocalFont プラグイン](https://github.com/khsk/AviUtl-LocalFontP
 > [!NOTE]
 > `Excludes.txt` と `Whitelist.txt` が同時に存在する場合，`Whitelist.txt` が優先されてホワイトリストモードになります．この場合 `Excludes.txt` は無視されます．
 
+#### `全フォントリスト.exa` について
+
+タイムラインにドラッグ&ドロップしてメインウィンドウに表示させるとスクリプトが動いて，コンソールに現在ドロップダウンリストから選択可能なフォント一覧を出力します．フォントリスト作成の補助に利用してください．
+
+- 動作には [patch.aul](https://github.com/nazonoSAUNA/patch.aul) と [LuaJIT](https://luajit.org/) が必要です．LuaJITは[こちら](https://github.com/Per-Terra/LuaJIT-Auto-Builds/releases)からダウンロードすることでも取得できます．
+
 
 ## その他
 
@@ -83,7 +89,7 @@ khsk様の [LocalFont プラグイン](https://github.com/khsk/AviUtl-LocalFontP
 
 1. oov様の[テキスト編集補助プラグイン](https://github.com/oov/aviutl_textassist)のフォントリストからも隠せます．
 
-> [!TIP]
+> [!NOTE]
 > 追加したフォントを除外リストに入れた場合，ドロップダウンリストには表示されませんが，制御文字 `<s>` や スクリプト `obj.setfont()` などでは使えるようになります．
 
 ## 謝辞

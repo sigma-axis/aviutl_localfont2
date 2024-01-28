@@ -87,7 +87,7 @@ jobs:
     - name: Prepare release notes
       id: release-notes
       run: |
-        echo "name=${{ github.ref_name }} ($(date +'%Y-%m-%d'))" >> $GITHUB_OUTPUT
+        echo "name=${{ github.ref_name }} ($(TZ='Asia/Tokyo' date +'%Y-%m-%d'))" >> $GITHUB_OUTPUT
         echo "### 更新内容" >> ReleaseNotes.txt
         phase=0
         IFS=$'\n'
