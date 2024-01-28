@@ -299,7 +299,7 @@ public:
 	{
 		std::FILE* file = nullptr;
 		if ((fopen_s(&file, sjis::from_wide_str(path).c_str(), "r") != 0) || file == nullptr) return false;
-		__assume(file != nullptr);
+		__assume(file != nullptr); // to suppress false warnings.
 
 		char line[MAX_PATH];
 		uint32_t blocklevel = 0;
@@ -445,7 +445,7 @@ void on_attach(HINSTANCE hinst)
 
 	// create the exclusion list.
 	wcscpy_s(name, size_name, filenames::WhitelistFile);
-	if (!excludes.load(path, true)) {
+	if (!excludes.load(path, true) || excludes.count() == 0) {
 		wcscpy_s(name, size_name, filenames::ExcludeFile);
 		excludes.load(path, false);
 	}

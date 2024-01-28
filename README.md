@@ -176,7 +176,7 @@ khsk様の [LocalFont プラグイン](https://github.com/khsk/AviUtl-LocalFontP
 
   - 初版．
 
-# ライセンス
+## ライセンス
 
 このプログラムの利用・改変・再頒布等に関しては MIT ライセンスに従うものとします．
 
