@@ -82,40 +82,40 @@ khsk様の [LocalFont プラグイン](https://github.com/khsk/AviUtl-LocalFontP
 
 - 動作には [patch.aul](https://github.com/nazonoSAUNA/patch.aul) と [LuaJIT](https://luajit.org/) が必要です．LuaJITは[こちら](https://github.com/Per-Terra/LuaJIT-Auto-Builds/releases)からダウンロードすることでも取得できます．
 
-<details>
-<summary>実行する Lua スクリプトは次の通りです．</summary>
+- <details>
+  <summary>実行する Lua スクリプトは次の通りです．</summary>
 
-```lua
-local c,ffi,txt = pcall(require, "ffi");
-if not _PATCH then txt = "patch.aul が必要です．";
-elseif not c then txt = "LuaJIT が必要です．";
-elseif not made_output then
-    debug_print("// フォント出力中...");
-    ffi.cdef[[
-        typedef struct {
-            char pad[28];
-            char lfFaceName[32];
-        } LOGFONTA;
-        typedef int (__stdcall *FONTENUMPROCA)(LOGFONTA*, void*, uint32_t, uint32_t);
-        int EnumFontFamiliesA(void*, const char*, FONTENUMPROCA, uint32_t);
-        void* GetDC(void*);
-        int ReleaseDC(void*,void*);
-    ]];
-    local n = 0;
-    local cb,hdc = ffi.cast("FONTENUMPROCA", function(lf, _, _, _)
-        local str = ffi.string(lf.lfFaceName);
-        if str:sub(1,1) ~= "@" then n=n+1; debug_print(str) end
-    return 1;
-    end),ffi.C.GetDC(nil);
-    ffi.C.EnumFontFamiliesA(hdc, nil, cb, 0);
-    cb:free();
-    ffi.C.ReleaseDC(nil, hdc);
-    debug_print("// "..n.."個のフォント名を出力．");
-    made_output=true;
-end
-obj.load("text", txt or "フォント名を出力しました．\nコンソールを確認してください．");
-```
-</details>
+  ```lua
+  local c,ffi,txt = pcall(require, "ffi");
+  if not _PATCH then txt = "patch.aul が必要です．";
+  elseif not c then txt = "LuaJIT が必要です．";
+  elseif not made_output then
+      debug_print("// フォント出力中...");
+      ffi.cdef[[
+          typedef struct {
+              char pad[28];
+              char lfFaceName[32];
+          } LOGFONTA;
+          typedef int (__stdcall *FONTENUMPROCA)(LOGFONTA*, void*, uint32_t, uint32_t);
+          int EnumFontFamiliesA(void*, const char*, FONTENUMPROCA, uint32_t);
+          void* GetDC(void*);
+          int ReleaseDC(void*,void*);
+      ]];
+      local n = 0;
+      local cb,hdc = ffi.cast("FONTENUMPROCA", function(lf, _, _, _)
+          local str = ffi.string(lf.lfFaceName);
+          if str:sub(1,1) ~= "@" then n=n+1; debug_print(str) end
+      return 1;
+      end),ffi.C.GetDC(nil);
+      ffi.C.EnumFontFamiliesA(hdc, nil, cb, 0);
+      cb:free();
+      ffi.C.ReleaseDC(nil, hdc);
+      debug_print("// "..n.."個のフォント名を出力．");
+      made_output=true;
+  end
+  obj.load("text", txt or "フォント名を出力しました．\nコンソールを確認してください．");
+  ```
+  </details>
 
 ## その他
 
