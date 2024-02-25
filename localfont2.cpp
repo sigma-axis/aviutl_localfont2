@@ -338,11 +338,9 @@ public:
 		auto [pos, len] = trim_string(name);
 		std::basic_string<CharT> buf{ pos, len };
 		tolower_str(buf);
-		return [&, this] {
-			if constexpr (std::is_same_v<CharT, wchar_t>)
-				return listw.contains(buf);
-			else return list.contains(buf);
-		}() ^ white_mode;
+		if constexpr (std::is_same_v<CharT, wchar_t>)
+			return listw.contains(buf) ^ white_mode;
+		else return list.contains(buf) ^ white_mode;
 	}
 	auto count() const { return list.size(); }
 	bool is_whitelist()const { return white_mode; }
@@ -473,6 +471,7 @@ BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwNotification, LPVOID lpReserved
 {
 	switch (dwNotification) {
 	case DLL_PROCESS_ATTACH:
+		::DisableThreadLibraryCalls(hInstance);
 		on_attach(hInstance);
 		break;
 	case DLL_PROCESS_DETACH:
