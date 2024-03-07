@@ -90,7 +90,7 @@ khsk様の [LocalFont プラグイン](https://github.com/khsk/AviUtl-LocalFontP
   if not _PATCH then txt = "patch.aul が必要です．";
   elseif not c then txt = "LuaJIT が必要です．";
   elseif not made_output then
-      debug_print("// フォント出力中...");
+      debug_print("フォント出力中...");
       ffi.cdef[[
           typedef struct {
               char pad[28];
@@ -104,13 +104,13 @@ khsk様の [LocalFont プラグイン](https://github.com/khsk/AviUtl-LocalFontP
       local n = 0;
       local cb,hdc = ffi.cast("FONTENUMPROCA", function(lf, _, _, _)
           local str = ffi.string(lf.lfFaceName);
-          if str:sub(1,1) ~= "@" then n=n+1; debug_print(str) end
-      return 1;
+          if str:sub(1,1) ~= "@" then n=n+1; io.write(str.."\n") end
+          return 1;
       end),ffi.C.GetDC(nil);
       ffi.C.EnumFontFamiliesA(hdc, nil, cb, 0);
       cb:free();
       ffi.C.ReleaseDC(nil, hdc);
-      debug_print("// "..n.."個のフォント名を出力．");
+      debug_print(n.."個のフォント名を出力．");
       made_output=true;
   end
   obj.load("text", txt or "フォント名を出力しました．\nコンソールを確認してください．");
@@ -131,6 +131,10 @@ khsk様の [LocalFont プラグイン](https://github.com/khsk/AviUtl-LocalFontP
 このプラグインのフォントの一時追加機能は，アイデア，実装方法を含めて khsk様の [LocalFont プラグイン](https://github.com/khsk/AviUtl-LocalFontPlugin)のものを流用しています．このような場で恐縮ですが大変便利なプラグインの公開，感謝申し上げます．
 
 ## 改版履歴
+
+- **v1.13** (2024-03-08)
+
+  - 同梱エイリアスファイルを更新．各フォント名の出力で，行頭にタイムスタンプが出力されないように変更．
 
 - **v1.12** (2024-02-28)
 

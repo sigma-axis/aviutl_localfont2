@@ -298,8 +298,7 @@ public:
 	bool load(const wchar_t* path, bool whitelist)
 	{
 		std::FILE* file = nullptr;
-		if ((fopen_s(&file, sjis::from_wide_str(path).c_str(), "r") != 0) || file == nullptr) return false;
-		__assume(file != nullptr); // to suppress false warnings.
+		if (_wfopen_s(&file, path, L"r") != 0 || file == nullptr) return false;
 
 		char line[MAX_PATH];
 		uint32_t blocklevel = 0;
