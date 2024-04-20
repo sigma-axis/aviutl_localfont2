@@ -44,8 +44,9 @@ namespace filenames
 ////////////////////////////////
 // 文字列操作．
 ////////////////////////////////
-struct sjis {
-	constexpr static uint32_t CodePage = 932;
+template<uint32_t codepage>
+struct Encode {
+	constexpr static uint32_t CodePage = codepage;
 
 	// conversion between wide character string.
 	static int cnt_wide_str(const char* str, int cnt_str = -1) {
@@ -67,7 +68,7 @@ struct sjis {
 	}
 	static std::wstring to_wide_str(const std::string& str) { return to_wide_str(str.c_str()); }
 
-	static int cnt_sjis_str(const wchar_t* wstr, int cnt_wstr = -1) {
+	static int cnt_narrow_str(const wchar_t* wstr, int cnt_wstr = -1) {
 		return from_wide_str(nullptr, 0, wstr, cnt_wstr);
 	}
 	static int from_wide_str(char* str, int cnt_str, const wchar_t* wstr, int cnt_wstr = -1) {
@@ -78,14 +79,15 @@ struct sjis {
 		return from_wide_str(str, int{ cnt_str }, wstr, cnt_wstr);
 	}
 	static std::string from_wide_str(const wchar_t* wstr, int cnt_wstr = -1) {
-		size_t cnt = cnt_sjis_str(wstr, cnt_wstr);
+		size_t cnt = cnt_narrow_str(wstr, cnt_wstr);
 		if (cnt_wstr >= 0 && wstr[cnt_wstr - 1] != L'\0') cnt++;
 		std::string ret{ cnt - 1, '\0', std::allocator<char>{} };
 		from_wide_str(ret.data(), cnt, wstr, cnt_wstr);
 		return ret;
 	}
 	static std::string from_wide_str(const std::wstring& wstr) { return from_wide_str(wstr.c_str()); }
-
+};
+struct sjis : Encode<932> {
 	// multibyte parsing.
 	constexpr static bool is_leading(char c) {
 		return ('\x81' <= c && c <= '\x9f') || ('\xe0' <= c && c <= '\xfc');
@@ -297,8 +299,8 @@ inline class {
 public:
 	bool load(const wchar_t* path, bool whitelist)
 	{
-		std::FILE* file = nullptr;
-		if (_wfopen_s(&file, path, L"r") != 0 || file == nullptr) return false;
+		std::FILE* file;
+		if (::fopen_s(&file, Encode<CP_ACP>::from_wide_str(path).c_str(), "r") != 0 || file == nullptr) return false;
 
 		char line[MAX_PATH];
 		uint32_t blocklevel = 0;
