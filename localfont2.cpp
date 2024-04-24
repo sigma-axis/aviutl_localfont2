@@ -11,17 +11,12 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 */
 
 #include <cstdint>
-#include <tuple>
-#include <cwchar>
 #include <string>
 #include <set>
 
 #define NOMINMAX
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
-
-#include <Shlwapi.h>
-#pragma comment(lib, "shlwapi")
 
 #include "detours/include/detours.h"
 #pragma comment(lib, "detours/lib.x86/detours")
@@ -62,7 +57,7 @@ struct Encode {
 	static std::wstring to_wide_str(const char* str, int cnt_str = -1) {
 		size_t cntw = cnt_wide_str(str, cnt_str);
 		if (cnt_str >= 0 && str[cnt_str - 1] != '\0') cntw++;
-		std::wstring ret{ cntw - 1, L'\0', std::allocator<wchar_t>{} };
+		std::wstring ret(cntw - 1, L'\0');
 		to_wide_str(ret.data(), cntw, str, cnt_str);
 		return ret;
 	}
@@ -81,145 +76,37 @@ struct Encode {
 	static std::string from_wide_str(const wchar_t* wstr, int cnt_wstr = -1) {
 		size_t cnt = cnt_narrow_str(wstr, cnt_wstr);
 		if (cnt_wstr >= 0 && wstr[cnt_wstr - 1] != L'\0') cnt++;
-		std::string ret{ cnt - 1, '\0', std::allocator<char>{} };
+		std::string ret(cnt - 1, '\0');
 		from_wide_str(ret.data(), cnt, wstr, cnt_wstr);
 		return ret;
 	}
 	static std::string from_wide_str(const std::wstring& wstr) { return from_wide_str(wstr.c_str()); }
 };
-struct sjis : Encode<932> {
-	// multibyte parsing.
-	constexpr static bool is_leading(char c) {
-		return ('\x81' <= c && c <= '\x9f') || ('\xe0' <= c && c <= '\xfc');
-	}
-	constexpr static bool is_second(char c) {
-		return ('\x40' <= c && c <= '\x7e') || ('\x80' <= c && c <= '\xfc');
-	}
-
-	// casing control.
-	constexpr static char tolower(char c) {
-		// https://blog.yimmo.org/posts/faster-tolower-in-c.html
-		// needs to shift one more bit than the reference;
-		// c = '\xc1' would fail otherwise.
-		return c ^ ((((0x40 - c) ^ (0x5a - c)) >> 3) & 0x20);
-	}
-	constexpr static char tolower(char c1, char c2) {
-		// lowers 'A' to 'Z' of full-widths'.
-		return c1 != '\x82' ? c2 :
-			c2 + ((((0x5f - c2) ^ (0x79 - c2)) >> 8) & 0x21);
-	}
-	constexpr static wchar_t tolower(wchar_t c) {
-		return c
-			^ ((((0x0040 - c) ^ (0x005a - c)) >> 11) & 0x0020) // narrow 'A' to 'Z'.
-			^ ((((0xff20 - c) ^ (0xff3a - c)) >> 11) & 0x0060); // full-width 'A' to 'Z'.
-	}
-
-	// determining white spaces.
-	constexpr static auto white_spaces = " \t\v\f\n\r"sv;
-	constexpr static uint16_t white_space_sjis = 0x8140;
-	constexpr static auto white_spaces_w = L" \t\v\f\n\r\u3000"sv;
-	constexpr static auto white_spaces_w2 =
-		L"\u0085\u00a0" L"\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a"
-		L"\u1680\u2028\u2029\u202f\u205f"sv; // those not in Shift JIS.
-	constexpr static auto white_spaces_w3 =
-		L"\u180e\u200b\u200c\u200d\u2060\ufeff"sv; // those not actually white spaces.
-
-	constexpr static bool is_space(char c) { return white_spaces.contains(c); }
-	constexpr static bool is_space(char c1, char c2) {
-		return ((static_cast<uint8_t>(c1) << 8) | static_cast<uint8_t>(c2)) == white_space_sjis;
-	}
-	constexpr static bool is_space(wchar_t c) {
-		return white_spaces_w.contains(c)
-			/*|| white_spaces_w2.contains(c)
-			|| white_spaces_w3.contains(c)*/;
-	}
-};
-
-// lower casing.
-constexpr struct : sjis {
-	constexpr void operator()(char* str) const
-	{
-		for (bool partial = false; *str != '\0'; str++) {
-			if (partial) {
-				partial = false;
-				*str = tolower(str[-1], *str);
-			}
-			else if (is_leading(*str)) partial = true;
-			else *str = tolower(*str);
-		}
-	}
-	constexpr void operator()(wchar_t* str) const
-	{
-		for (; *str != L'\0'; str++) *str = tolower(*str);
-	}
-	template<class CharT>
-	constexpr void operator()(std::basic_string<CharT>& str) const { (*this)(str.data()); }
-} tolower_str;
+using encode_sjis = Encode<932>;
+using encode_utf8 = Encode<CP_UTF8>;
+using encode_sys = Encode<CP_ACP>;
 
 // trimming white spaces on the both sides.
-constexpr struct : sjis {
-private:
-	// returns (pos, len)-pair.
-	constexpr static std::pair<size_t, size_t> locate(const char* str)
-	{
-		const char* st = str, * ed;
+inline constinit struct {
+	// determining white spaces.
+	constexpr static auto white_spaces =
+		// in Shift JIS.
+		L" \t\v\f\n\r\u3000"sv
 
-		// find the beginning.
-		bool partial = false;
-		for (; *st != '\0'; st++) {
-			if (partial) {
-				if (is_space(st[-1], *st)) { partial = false; continue; }
-			}
-			else if (is_leading(*st)) { partial = true; continue; }
-			else if (is_space(*st)) continue;
+		// not in Shift JIS.
+		L"\u0085\u00a0"
+		L"\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a"
+		L"\u1680\u2028\u2029\u202f\u205f"sv
 
-			ed = st + 1;
-			// rewind back to the first byte of the double byte character.
-			if (partial) { partial = false; st--; }
+		// actually not white spaces.
+		//L"\u180e\u200b\u200c\u200d\u2060\ufeff"sv
+		;
 
-			// find the tail.
-			for (auto cur = ed; *cur != '\0'; cur++) {
-				if (partial) {
-					partial = false;
-					if (is_space(cur[-1], *cur)) continue;
-				}
-				else if (is_leading(*cur)) { partial = true; continue; }
-				else if (is_space(*cur)) continue;
-
-				ed = cur + 1;
-			}
-			return { st - str, ed - st };
-		}
-
-		// all characters are white spaces.
-		return { 0, 0 }; 
-	}
-	// returns (pos, len)-pair.
-	constexpr static std::pair<size_t, size_t> locate(const wchar_t* str)
-	{
-		const wchar_t* st = str, * ed;
-
-		// find the beginning.
-		for (; *st != L'\0'; st++) {
-			if (is_space(*st)) continue;
-			ed = st + 1;
-
-			// find the tail.
-			for (auto cur = ed; *cur != L'\0'; cur++) {
-				if (is_space(*cur)) continue;
-				ed = cur + 1;
-			}
-			return { st - str, ed - st };
-		}
-
-		// all characters are white spaces.
-		return { 0, 0 };
-	}
-
-public:
-	constexpr auto operator()(auto* str) const {
-		auto [pos, len] = locate(str);
-		return std::make_pair(str + pos, len);
+	constexpr std::wstring_view operator()(const std::wstring_view& str) {
+		auto st = str.find_first_not_of(white_spaces);
+		if (st == std::string_view::npos) return str.substr(0, 0);
+		auto ed = str.find_last_not_of(white_spaces);
+		return str.substr(st, ed - st);
 	}
 } trim_string;
 
@@ -227,40 +114,44 @@ public:
 ////////////////////////////////
 // Private フォント追加．
 ////////////////////////////////
-template<size_t N>
-void add_fonts(wchar_t(&path)[N])
-{
-	std::set<std::wstring> exts{ std::from_range, filenames::Extensions };
-	auto is_font_ext = [&exts](wchar_t* name) {
-		auto p = ::PathFindExtensionW(name);
-		if (*p == L'\0') return false;
-		tolower_str(++p);
-		return exts.contains(p);
-	};
+inline void iterate_files_recursively(const std::wstring& path, const auto& on_file) {
 	WIN32_FIND_DATAW file{};
 
-	// core loop for the recursion.
-	[&](this const auto& inner, size_t tail) {
-		if (wcscpy_s(path + tail, N - tail, L"/*") != 0) return;
-		auto h = ::FindFirstFileW(path, &file);
+	// loop for the recursion.
+	[&file, &on_file](this const auto& inner, std::wstring path) {
+		auto h = ::FindFirstFileW(path.c_str(), &file);
 		if (h == nullptr) return;
-		tail++;
+		path.pop_back();
 
 		do {
 			// skip '.' and '..'
 			if (file.cFileName == L"."sv || file.cFileName == L".."sv) continue;
 
-			if (wcscpy_s(path + tail, N - tail, file.cFileName) != 0) break;
+			auto subitem = path + file.cFileName;
 			if ((file.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0)
-				// recursively add fonts in subdirectories.
-				inner(tail + std::wcslen(file.cFileName));
-			else if (is_font_ext(file.cFileName))
-				// add font privately.
-				::AddFontResourceExW(path, FR_PRIVATE, 0);
-
+				// recursively iterate over subdirectories.
+				inner(subitem + L"/*");
+			else on_file(subitem, file);
 		} while (::FindNextFileW(h, &file));
 		::FindClose(h);
-	} (std::wcslen(path));
+	} (path + L"/*");
+}
+inline void add_fonts(std::wstring path)
+{
+	std::set<std::wstring> exts{ std::from_range, filenames::Extensions };
+	auto is_font_ext = [&exts](const std::wstring& name) {
+		auto pos = name.find_last_of(L'.');
+		if (pos == std::wstring::npos) return false;
+		auto ext = name.substr(pos + 1);
+		::CharLowerW(ext.data());
+		return exts.contains(ext);
+	};
+
+	iterate_files_recursively(path, [&](const std::wstring& file_path, WIN32_FIND_DATAW& file) {
+		if (is_font_ext(file_path))
+			// add font privately.
+			::AddFontResourceExW(file_path.c_str(), FR_PRIVATE, 0);
+	});
 }
 
 
@@ -268,25 +159,21 @@ void add_fonts(wchar_t(&path)[N])
 // 除外リスト．
 ////////////////////////////////
 inline class {
-	std::set<std::string> list{};
-	std::set<std::wstring> listw{};
+	std::set<std::wstring> list{};
 	bool white_mode = false;
 
 	// returns whether the current line should skip parsing.
-	static constexpr bool is_linecomment(const char* line)
+	static constexpr bool is_linecomment(const std::wstring_view& line)
 	{
-		constexpr const char* begin = "//";
-		auto c = begin;
-		while (*c != '\0' && *line == *c) line++, c++;
-		return *c == '\0';
+		return line.starts_with(L"//"sv);
 	}
 
 	// returns whether the current line should skip parsing.
-	static constexpr bool is_blockcomment(const char* line, uint32_t& blocklevel)
+	static constexpr bool is_blockcomment(const std::wstring_view& line, size_t& blocklevel)
 	{
-		constexpr char symb = '%';
-		uint32_t cnt = 0;
-		while (line[cnt] == symb) cnt++;
+		constexpr wchar_t symb = L'%';
+		auto cnt = line.find_first_not_of(symb);
+		if (cnt == std::wstring_view::npos) cnt = line.length();
 
 		if (blocklevel == 0) {
 			blocklevel = cnt;
@@ -297,35 +184,31 @@ inline class {
 	}
 
 public:
-	bool load(const wchar_t* path, bool whitelist)
+	bool load(std::wstring path, bool whitelist)
 	{
 		std::FILE* file;
-		if (::fopen_s(&file, Encode<CP_ACP>::from_wide_str(path).c_str(), "r") != 0 || file == nullptr) return false;
+		if (::fopen_s(&file, encode_sys::from_wide_str(path).c_str(), "r") != 0 || file == nullptr) return false;
+
+		list.clear();
 
 		char line[MAX_PATH];
-		uint32_t blocklevel = 0;
-		while (std::fgets(line, std::size(line), file)) {
+		size_t blocklevel = 0;
+		while (std::fgets(line, std::size(line), file) != nullptr) {
+			auto linew = encode_sjis::to_wide_str(line);
+
 			// trim the string.
-			auto [begin, len] = trim_string(line);
-			begin[len] = '\0';
+			auto span = trim_string(linew);
 
 			// skip comment lines,
-			if (is_blockcomment(begin, blocklevel)) continue;
-			if (is_linecomment(begin)) continue;
+			if (is_blockcomment(span, blocklevel)) continue;
+			if (is_linecomment(span)) continue;
 
 			// and those that are too long or empty.
-			if (len == 0 || len >= LF_FACESIZE) continue;
+			if (span.empty() || span.length() >= LF_FACESIZE) continue;
 
-			// uniform the casing.
-			tolower_str(begin);
-
-			// prepare the wide string.
-			wchar_t linew[LF_FACESIZE];
-			sjis::to_wide_str(linew, begin);
-
-			// then add.
-			list.emplace(begin);
-			listw.emplace(linew);
+			// add the lower-cased string.
+			::CharLowerBuffW(const_cast<wchar_t*>(span.data()), span.length());
+			list.emplace(span);
 		}
 
 		std::fclose(file);
@@ -336,12 +219,15 @@ public:
 	template<class CharT>
 	bool operator()(const CharT* name) const
 	{
-		auto [pos, len] = trim_string(name);
-		std::basic_string<CharT> buf{ pos, len };
-		tolower_str(buf);
-		if constexpr (std::is_same_v<CharT, wchar_t>)
-			return listw.contains(buf) ^ white_mode;
-		else return list.contains(buf) ^ white_mode;
+		if constexpr (std::is_same_v<wchar_t, CharT>) {
+			std::wstring buf{ trim_string(name) };
+			::CharLowerW(buf.data());
+			return white_mode ^ list.contains(buf);
+		}
+		else if constexpr (std::is_same_v<char, CharT>) {
+			return (*this)(encode_sys::to_wide_str(name).c_str());
+		}
+		std::unreachable();
 	}
 	auto count() const { return list.size(); }
 	bool is_whitelist()const { return white_mode; }
@@ -427,26 +313,24 @@ constexpr struct : EnumFontFamiliesBase {
 ////////////////////////////////
 // 初期化処理．
 ////////////////////////////////
-void on_attach(HINSTANCE hinst)
+inline void on_attach(HINSTANCE hinst)
 {
-	wchar_t path[MAX_PATH];
-	::GetModuleFileNameW(hinst, path, std::size(path));
-
-	auto* name = ::PathFindFileNameW(path);
-	auto const size_name = std::size(path) - (name - path);
+	std::wstring path(MAX_PATH - 1, L'\0');
+	path.erase(::GetModuleFileNameW(hinst, path.data(), path.length() + 1));
 
 	// backup the dll file name for the future use.
-	std::wstring dllname{ name };
+	static_assert(std::wstring::npos + 1 == 0);
+	auto dllname = path.substr(path.find_last_of(L"/\\"sv) + 1);
+
+	// set `path` as the base of file paths.
+	path.erase(path.length() - dllname.length());
 
 	// add priavte fonts.
-	wcscpy_s(name, size_name, filenames::TargetFolder);
-	add_fonts(path);
+	add_fonts(path + filenames::TargetFolder);
 
 	// create the exclusion list.
-	wcscpy_s(name, size_name, filenames::WhitelistFile);
-	if (!excludes.load(path, true) || excludes.count() == 0) {
-		wcscpy_s(name, size_name, filenames::ExcludeFile);
-		excludes.load(path, false);
+	if (!excludes.load(path + filenames::WhitelistFile, true) || excludes.count() == 0) {
+		excludes.load(path + filenames::ExcludeFile, false);
 	}
 
 	// override Win32 API.
