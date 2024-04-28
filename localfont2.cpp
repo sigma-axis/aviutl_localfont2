@@ -371,3 +371,11 @@ BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwNotification, LPVOID lpReserved
 	return TRUE;
 }
 
+
+////////////////////////////////
+// バージョン情報．
+////////////////////////////////
+extern "C" __declspec(dllexport) const char* __stdcall ThisAulVersion(void)
+{
+	return "v1.20-pre1";
+}

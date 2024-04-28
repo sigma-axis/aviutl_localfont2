@@ -19,9 +19,4 @@
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
-  <ItemGroup>
-    <None Include="localfont2.def">
-      <Filter>Source Files</Filter>
-    </None>
-  </ItemGroup>
 </Project>
