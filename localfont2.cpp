@@ -90,8 +90,11 @@ using encode_sys = Encode<CP_ACP>;
 inline constinit struct {
 	// determining white spaces.
 	constexpr static auto white_spaces =
+		// ASCII.
+		L" \t\v\f\n\r"sv
+
 		// in Shift JIS.
-		L" \t\v\f\n\r\u3000"sv
+		L"\u3000"sv
 
 		// not in Shift JIS.
 		L"\u0085\u00a0"
@@ -187,14 +190,20 @@ public:
 	bool load(std::wstring path, bool whitelist)
 	{
 		std::FILE* file;
-		if (::fopen_s(&file, encode_sys::from_wide_str(path).c_str(), "r") != 0 || file == nullptr) return false;
+		if (::_wfopen_s(&file, path.c_str(), L"rt") != 0 || file == nullptr) return false;
 
 		list.clear();
 
+		// skip BOM (EF BB BF).
+		for (int c : { 0xEF, 0xBB, 0xBF }) {
+			if (std::fgetc(file) != c) { std::rewind(file); break; }
+		}
+
+		// traverse each line.
 		char line[MAX_PATH];
 		size_t blocklevel = 0;
 		while (std::fgets(line, std::size(line), file) != nullptr) {
-			auto linew = encode_sjis::to_wide_str(line);
+			auto linew = encode_utf8::to_wide_str(line);
 
 			// trim the string.
 			auto span = trim_string(linew);
@@ -204,7 +213,7 @@ public:
 			if (is_linecomment(span)) continue;
 
 			// and those that are too long or empty.
-			if (span.empty() || span.length() >= LF_FACESIZE) continue;
+			if (span.empty() || span.length() >= font_length_max) continue;
 
 			// add the lower-cased string.
 			::CharLowerBuffW(const_cast<wchar_t*>(span.data()), span.length());
@@ -214,7 +223,7 @@ public:
 		std::fclose(file);
 
 		white_mode = whitelist;
-		return true;
+		return list.size() > 0;
 	}
 	template<class CharT>
 	bool operator()(const CharT* name) const
@@ -225,12 +234,15 @@ public:
 			return white_mode ^ list.contains(buf);
 		}
 		else if constexpr (std::is_same_v<char, CharT>) {
-			return (*this)(encode_sys::to_wide_str(name).c_str());
+			wchar_t buf[font_length_max];
+			encode_sys::to_wide_str(buf, name);
+			return (*this)(buf);
 		}
 		std::unreachable();
 	}
 	auto count() const { return list.size(); }
 	bool is_whitelist()const { return white_mode; }
+	constexpr static size_t font_length_max = LF_FACESIZE;
 } excludes;
 
 
@@ -239,18 +251,12 @@ public:
 ////////////////////////////////
 struct DetourHelper {
 	static void Attach(auto&... args) {
-		if (!(args.is_effective() || ...)) return;
-
 		::DetourTransactionBegin();
-		::DetourUpdateThread(::GetCurrentThread());
 		(args.attach(), ...);
 		::DetourTransactionCommit();
 	}
 	static void Detach(auto&... args) {
-		if (!(args.is_effective() || ...)) return;
-
 		::DetourTransactionBegin();
-		::DetourUpdateThread(::GetCurrentThread());
 		(args.detach(), ...);
 		::DetourTransactionCommit();
 	}
@@ -282,8 +288,8 @@ private:
 ////////////////////////////////
 struct EnumFontFamiliesBase : DetourHelper {
 protected:
-	template<auto& original, class StrT, class ProcT, auto at_char>
-	static int WINAPI detour_template(HDC hdc, StrT logfont, ProcT proc, LPARAM lparam)
+	template<auto& original, auto at_char, class ProcT>
+	static int WINAPI detour_template(HDC hdc, const decltype(at_char)* logfont, ProcT proc, LPARAM lparam)
 	{
 		auto cxt = std::make_pair(proc, lparam);
 		return original(hdc, logfont, [](auto lf, auto metric, auto type, LPARAM lparam) {
@@ -300,13 +306,13 @@ protected:
 constexpr struct : EnumFontFamiliesBase {
 	// exedit.auf uses this API.
 	static inline auto* original = &::EnumFontFamiliesA;
-	constexpr static auto& detour = detour_template<original, PCSTR, FONTENUMPROCA, '@'>;
+	constexpr static auto& detour = detour_template<original, '@', FONTENUMPROCA>;
 } enum_font_families_A;
 
 constexpr struct : EnumFontFamiliesBase {
 	// other plugins may use this API, such as textassist.auf by oov.
 	static inline auto* original = &::EnumFontFamiliesW;
-	constexpr static auto& detour = detour_template<original, PCWSTR, FONTENUMPROCW, L'@'>;
+	constexpr static auto& detour = detour_template<original, L'@', FONTENUMPROCW>;
 } enum_font_families_W;
 
 
@@ -329,9 +335,8 @@ inline void on_attach(HINSTANCE hinst)
 	add_fonts(path + filenames::TargetFolder);
 
 	// create the exclusion list.
-	if (!excludes.load(path + filenames::WhitelistFile, true) || excludes.count() == 0) {
+	if (!excludes.load(path + filenames::WhitelistFile, true))
 		excludes.load(path + filenames::ExcludeFile, false);
-	}
 
 	// override Win32 API.
 	if (excludes.count() > 0) {
@@ -340,7 +345,7 @@ inline void on_attach(HINSTANCE hinst)
 		DetourHelper::Attach(enum_font_families_A, enum_font_families_W);
 	}
 }
-void on_detach()
+inline void on_detach()
 {
 	// restore the API.
 	if (excludes.count() > 0)
