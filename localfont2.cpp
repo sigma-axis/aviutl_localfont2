@@ -56,7 +56,7 @@ struct Encode {
 	}
 	static std::wstring to_wide_str(const char* str, int cnt_str = -1) {
 		size_t cntw = cnt_wide_str(str, cnt_str);
-		if (cnt_str >= 0 && str[cnt_str - 1] != '\0') cntw++;
+		if (cntw == 0 || (cnt_str >= 0 && str[cnt_str - 1] != '\0')) cntw++;
 		std::wstring ret(cntw - 1, L'\0');
 		to_wide_str(ret.data(), cntw, str, cnt_str);
 		return ret;
@@ -75,7 +75,7 @@ struct Encode {
 	}
 	static std::string from_wide_str(const wchar_t* wstr, int cnt_wstr = -1) {
 		size_t cnt = cnt_narrow_str(wstr, cnt_wstr);
-		if (cnt_wstr >= 0 && wstr[cnt_wstr - 1] != L'\0') cnt++;
+		if (cnt == 0 || (cnt_wstr >= 0 && wstr[cnt_wstr - 1] != L'\0')) cnt++;
 		std::string ret(cnt - 1, '\0');
 		from_wide_str(ret.data(), cnt, wstr, cnt_wstr);
 		return ret;
@@ -235,7 +235,8 @@ public:
 		}
 		else if constexpr (std::is_same_v<char, CharT>) {
 			wchar_t buf[font_length_max];
-			encode_sys::to_wide_str(buf, name);
+			if (encode_sys::to_wide_str(buf, name) == 0)
+				return white_mode; // treat as an unknown name.
 			return (*this)(buf);
 		}
 		std::unreachable();
