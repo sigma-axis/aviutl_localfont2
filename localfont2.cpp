@@ -109,7 +109,7 @@ inline constinit struct {
 		auto st = str.find_first_not_of(white_spaces);
 		if (st == std::string_view::npos) return str.substr(0, 0);
 		auto ed = str.find_last_not_of(white_spaces);
-		return str.substr(st, ed - st);
+		return str.substr(st, ed - st + 1);
 	}
 } trim_string;
 
@@ -378,5 +378,5 @@ BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwNotification, LPVOID lpReserved
 ////////////////////////////////
 extern "C" __declspec(dllexport) const char* __stdcall ThisAulVersion(void)
 {
-	return "v1.20-pre1";
+	return "v1.20-pre2";
 }
