@@ -30,7 +30,7 @@ using namespace std::string_view_literals;
 namespace filenames
 {
 	constexpr auto TargetFolder = L"Fonts";
-	constexpr auto ExcludeFile = L"Fonts/Excludes.txt";
+	constexpr auto ExcludesFile = L"Fonts/Excludes.txt";
 	constexpr auto WhitelistFile = L"Fonts/Whitelist.txt";
 	constexpr const wchar_t* Extensions[] = { L"fon", L"fnt", L"ttf", L"ttc", L"fot", L"otf", L"mmm", L"pfb", L"pfm" };
 }
@@ -225,21 +225,16 @@ public:
 		white_mode = whitelist;
 		return list.size() > 0;
 	}
-	template<class CharT>
-	bool operator()(const CharT* name) const
-	{
-		if constexpr (std::is_same_v<wchar_t, CharT>) {
-			std::wstring buf{ trim_string(name) };
-			::CharLowerW(buf.data());
-			return white_mode ^ list.contains(buf);
-		}
-		else if constexpr (std::is_same_v<char, CharT>) {
-			wchar_t buf[font_length_max];
-			if (encode_sys::to_wide_str(buf, name) == 0)
-				return white_mode; // treat as an unknown name.
-			return (*this)(buf);
-		}
-		std::unreachable();
+	bool operator()(const wchar_t* name) const {
+		std::wstring buf{ trim_string(name) };
+		::CharLowerW(buf.data());
+		return white_mode ^ list.contains(buf);
+	}
+	bool operator()(const char* name) const {
+		wchar_t buf[font_length_max];
+		if (encode_sys::to_wide_str(buf, name) == 0)
+			return white_mode; // treat as an unknown name.
+		return (*this)(buf);
 	}
 	auto count() const { return list.size(); }
 	bool is_whitelist()const { return white_mode; }
@@ -295,7 +290,7 @@ protected:
 		auto cxt = std::make_pair(proc, lparam);
 		return original(hdc, logfont, [](auto lf, auto metric, auto type, LPARAM lparam) {
 			// filter by the face name.
-			if (excludes(lf->lfFaceName + (lf->lfFaceName[0] == at_char ? 1 : 0))) return TRUE;
+			if (excludes(&lf->lfFaceName[lf->lfFaceName[0] == at_char ? 1 : 0])) return TRUE;
 
 			// default behavior otherwise.
 			auto [proc, lp] = *reinterpret_cast<decltype(cxt)*>(lparam);
@@ -337,7 +332,7 @@ inline void on_attach(HINSTANCE hinst)
 
 	// create the exclusion list.
 	if (!excludes.load(path + filenames::WhitelistFile, true))
-		excludes.load(path + filenames::ExcludeFile, false);
+		excludes.load(path + filenames::ExcludesFile, false);
 
 	// override Win32 API.
 	if (excludes.count() > 0) {
@@ -378,5 +373,5 @@ BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwNotification, LPVOID lpReserved
 ////////////////////////////////
 extern "C" __declspec(dllexport) const char* __stdcall ThisAulVersion(void)
 {
-	return "v1.20-pre2";
+	return "v1.20-pre3";
 }
