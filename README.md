@@ -53,6 +53,8 @@ khsk様の [LocalFont プラグイン](https://github.com/khsk/AviUtl-LocalFontP
 
   `.fon` `.fnt` `.ttf` `.ttc` `.fot` `.otf` `.mmm` `.pfb` `.pfm`
 
+- フォント以外のファイルは無視します (`Fonts` 直下の `Excludes.txt` と `Whitelist.txt` を除く).
+
 ### フォントの除外方法
 
 `Fonts` フォルダ内の `Excludes.txt` に除外したいフォント名を1行ずつ記述してください．
@@ -68,6 +70,8 @@ khsk様の [LocalFont プラグイン](https://github.com/khsk/AviUtl-LocalFontP
   ```
 
 記述法に関しては `Excludes.txt` 内のコメントにも説明があるので，そちらもご確認ください．
+
+- エンコード形式は UTF-8 です．バイト順マーク (BOM) の有無は問いません．
 
 #### ホワイトリストモード
 
@@ -101,20 +105,48 @@ khsk様の [LocalFont プラグイン](https://github.com/khsk/AviUtl-LocalFontP
           void* GetDC(void*);
           int ReleaseDC(void*,void*);
       ]];
-      c={};
       local cb,hdc=ffi.cast("FONTENUMPROCA",function(lf,_,_,_)
           local str=ffi.string(lf.lfFaceName);
           if str:sub(1,1)~="@" then table.insert(c,str.."\n") end
           return 1;
       end),ffi.C.GetDC(nil);
-      ffi.C.EnumFontFamiliesA(hdc,nil,cb,0);
-      cb:free();
-      ffi.C.ReleaseDC(nil,hdc);
+      c={}; ffi.C.EnumFontFamiliesA(hdc,nil,cb,0);
+      cb:free(); ffi.C.ReleaseDC(nil,hdc);
       table.sort(c); io.write(table.concat(c));
       debug_print(#c.."個のフォント名を出力．");
       made_output=true;
   end
   obj.load("text",err or "フォント名を出力しました．\nコンソールを確認してください．");
+  ```
+  </details>
+
+## `localfont2のバージョン確認.exa` について
+
+タイムラインにドラッグ&ドロップするとテキストオブジェクトになるエイリアスファイルです．現在導入されている `localfont2.aul` ファイルのバージョンを表示するスクリプトが書かれています．更新確認などに利用してください．
+
+- 動作には [LuaJIT](https://luajit.org/) が必要です．[\[DL\]](https://github.com/Per-Terra/LuaJIT-Auto-Builds/releases)
+
+- <details>
+  <summary>実行する Lua スクリプトは次の通りです（クリックで表示）．</summary>
+
+  ```lua
+  local aulname="localfont2.aul";
+  local c,ffi,str,lib=pcall(require,"ffi");
+  if not c then obj.mes"LuaJIT が必要です．"; return end
+  if not defined_ThisAulVersion then
+      ffi.cdef[[
+          uint32_t __stdcall GetModuleFileNameA(void*, char*, size_t);
+          const char* __stdcall ThisAulVersion(void);
+      ]];
+      defined_ThisAulVersion=true;
+  end
+  str=ffi.new"char[256]"; ffi.C.GetModuleFileNameA(nil,str,256);
+  str=ffi.string(str):match".*[/\\]";
+  c,lib=pcall(ffi.load,str..aulname);
+  if not c then c,lib=pcall(ffi.load,str.."plugins/"..aulname) end
+  if not c then obj.mes(aulname.." が見つかりません．"); return end
+  c,str=pcall(function()return lib.ThisAulVersion() end);
+  obj.mes(aulname.." のバージョン: "..(c and ffi.string(str) or "v1.14 以前"));
   ```
   </details>
 
@@ -132,6 +164,22 @@ khsk様の [LocalFont プラグイン](https://github.com/khsk/AviUtl-LocalFontP
 このプラグインのフォントの一時追加機能は，アイデア，実装方法を含めて khsk様の [LocalFont プラグイン](https://github.com/khsk/AviUtl-LocalFontPlugin)のものを流用しています．このような場で恐縮ですが大変便利なプラグインの公開，感謝申し上げます．
 
 ## 改版履歴
+
+- **v1.20** (2024-05-09)
+
+  **`Excludes.txt` (あるいは `Whitelist.txt`) のエンコード形式を以前の Shift-JIS から UTF-8 に変更しました．v1.14 以前から更新する際にはエンコード形式の変換をお願いします．**
+
+  - コードの大幅整理・改造．大文字小文字の同一視判定を Win32 API に任せるように．
+
+  - `Excludes.txt` のエンコード形式を Shift-JIS から UTF-8 に変更．
+    - それに伴って同梱の `Excludes.txt` のコメント説明も一部修正・変更．
+
+  - `Excludes.txt` 内に記述例として，AviUtl ではまともに扱えなかったり多言語系や用途が特殊なフォントを記載．
+    - 多くの環境に共通して存在するフォントだと思われますので，必要に応じてブロックコメントの外に抜き出して利用してください．
+
+  - バージョン情報の埋め込み方法を変更．
+
+  - `localfont2のバージョン確認.exa` を同梱．このプラグインのバージョンは AviUtl の GUI からは確認できないため，代替手段を用意．
 
 - **v1.14** (2024-04-04)
 

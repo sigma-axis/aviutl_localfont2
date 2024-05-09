@@ -2,7 +2,7 @@
 # Set default behavior to automatically normalize line endings.
 ###############################################################################
 * text=auto
-assets/Fonts/Excludes.txt text working-tree-encoding=cp932 eol=crlf
+assets/Fonts/Excludes.txt eol=crlf
 *.exa text working-tree-encoding=cp932 eol=crlf linguist-language=ini
 
 ###############################################################################

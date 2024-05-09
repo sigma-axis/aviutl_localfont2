@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////
-// ※ このファイルは Shift JIS 形式で保存すること．
+// ※ このファイルは UTF-8 形式で保存すること．
 ////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////
@@ -29,14 +29,15 @@
 
 ////////////////////////////////////////////////////////////////
 // ホワイトリストモードについて:
-// このファイルを Excludes.txt から Whitelist.txt に
-// 名前変更すると，指定したフォントのみが表示されるようになります．
+// このファイルを Excludes.txt から Whitelist.txt に名前変更すると，
+// 指定したフォントは除外されるのではなく，
+// 逆にそのフォントのみが表示されるようになります．
 
 ////////////////////////////////////////////////////////////////
 // その他注意項目:
 // - 行頭行末の空白は無視します．空白文字のみの行も無視します．
-// - 1行の文字数は半角 256 字以下（行頭行末の空白を含む）にしてください．
-//   （コメント扱いの行でも 256 字を超えた場合の動作は不定です．）
+// - 1行の文字数は 256 バイト以下（行頭行末の空白を含む）にしてください．
+//   （コメント扱いの行でも 256 バイトを超えた場合の動作は不定です．）
 
 ////////////////////////////////////////////////////////////////
 // ↓フォント名は1行に1つずつ記述してください．
@@ -48,12 +49,217 @@
 
 
 
-% 記述例:
-  // 標準フォント．
-  ＭＳ ゴシック
-  ＭＳ 明朝
-
-  // サイズ120未満だと表示されない．
+% 記述例: 必要に応じてブロックコメントの外に抜き出して利用できます．
+  // ビットマップフォントなのでサイズが小さいと使えない．
+  Courier
   FixedSys
+  Modern
+  MS Sans Serif
+  MS Serif
+  Roman
+  Script
+  Small Fonts
+  System
+  Terminal
+
+  // 互換性のためにのみ残されている．
+  Arial Baltic
+  Arial CE
+  Arial CYR
+  Arial Greek
+  Arial TUR
+  Arial Unicode MS
+  Courier New Baltic
+  Courier New CE
+  Courier New CYR
+  Courier New Greek
+  Courier New TUR
+  Times New Roman Baltic
+  Times New Roman CE
+  Times New Roman CYR
+  Times New Roman Greek
+  Times New Roman TUR
+
+  // 多言語系 (コメント記述は言語分類など間違ってるかもしれないので参考程度に).
+    // タイ語
+    Angsana New
+    AngsanaUPC
+    Browallia New
+    BrowalliaUPC
+    Cordia New
+    CordiaUPC
+    DilleniaUPC
+    EucrosiaUPC
+    FreesiaUPC
+    IrisUPC
+    JasmineUPC
+    KodchiangUPC
+    Leelawadee
+    Leelawadee UI
+    Leelawadee UI Semilight
+    LilyUPC
+
+    // シンハラ語 (スリランカ)
+    Iskoola Pota
+
+    // ジャワ語
+    Javanese Text
+
+    // クメール語 (カンボジア周辺)
+    DaunPenh
+    Khmer UI
+    MoolBoran
+
+    // ラオス
+    DokChampa
+    Lao UI
+
+    // ミャンマー語
+    Myanmar Text
+
+    // インド語族
+      // ヒンディー語
+      Aparajita
+      Kokila
+      Utsaah
+
+      // オリヤー語
+      Kalinga
+
+      // カンナダ語
+      Tunga
+
+      // グジャラート語
+      Shruti
+
+      // タミル語
+      Latha
+      Vijaya
+
+      // デーヴァナーガリー語
+      Mangal
+
+      // テルグ語
+      Gautami
+      Vani
+
+      // パンジャーブ語
+      Raavi
+
+      // ベンガル語
+      Shonar Bangla
+      Vrinda
+
+      // マラヤーラム語
+      Kartika
+
+      // ブラーフミー系文字
+      Nirmala UI
+      Nirmala UI Semilight
+
+    // 韓国語
+    Batang
+    BatangChe
+    Dotum
+    DotumChe
+    Gungsuh
+    GungsuhChe
+    Gulim
+    GulimChe
+    Malgun Gothic
+    Malgun Gothic Semilight
+
+    // 中国周辺
+      // 中国語
+      Microsoft JhengHei
+      Microsoft JhengHei Light
+      Microsoft JhengHei UI
+      Microsoft JhengHei UI Light
+      nsimsun
+      simhei
+      simsun
+      simsun-ExtB
+
+      // 簡体字
+      FangSong
+      KaiTi
+      Microsoft YaHei
+      Microsoft YaHei Light
+      Microsoft YaHei UI
+      Microsoft YaHei UI Light
+
+      // Traditional
+      DFKai-SB
+
+      // 四川彝語
+      Microsoft Yi Baiti
+
+      // チベット
+      Microsoft Himalaya
+
+      // ウイグル文字
+      Microsoft Uighur
+
+      // タイ・ロ文字
+      Microsoft New Tai Lue
+
+      // タイ・ナ文字
+      Microsoft Tai Le
+
+
+    // モンゴル語
+    Mongolian Baiti
+
+    // パスパ文字 (古代モンゴル)
+    Microsoft PhagsPa
+
+    // ゲエズ文字 (古代エチオピア語)
+    Nyala
+
+    // アラビア語 (右から左なので AviUtl では非対応)
+    Andalus
+    Arabic Transparent
+    Arabic Typesetting
+    Sakkal Majalla
+    Simplified Arabic
+    Simplified Arabic Fixed
+    Traditional Arabic
+
+    // シリア文字
+    Estrangelo Edessa
+
+    // ヘブライ語
+    Aharoni
+    David
+    FrankRuehl
+    Gisha
+    Levenim MT
+    Miriam
+    Miriam Fixed
+    Narkisim
+    Rod
+
+    // アフリカ全般
+    Ebrima
+
+    // カナダ先住民文字
+    Euphemia
+    Gadugi
+  // ...多言語系ここまで．
+
+  // 絵文字・アイコン系フォント
+  Bookshelf Symbol 7
+  HoloLens MDL2 Assets
+  Marlett
+  MS Outlook
+  MS Reference Specialty
+  MT Extra
+  Segoe Fluent Icons
+  Segoe MDL2 Assets
+  Webdings
+  Wingdings
+
+  // 分類不明．多種多様な文字の寄せ集め？
+  Sans Serif Collection
 
 % ...記述例ここまで．
