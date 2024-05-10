@@ -6,7 +6,7 @@
 
 khsk様の [LocalFont プラグイン](https://github.com/khsk/AviUtl-LocalFontPlugin)の拡張版です．
 
-[ダウンロードはこちら．](https://github.com/sigma-axis/aviutl_localfont2/releases)
+[ダウンロードはこちら．](https://github.com/sigma-axis/aviutl_localfont2/releases) [紹介動画．](https://www.nicovideo.jp/watch/sm43771122)
 
 ## 動作要件
 
