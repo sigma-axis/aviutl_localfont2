@@ -80,7 +80,9 @@ khsk様の [LocalFont プラグイン](https://github.com/khsk/AviUtl-LocalFontP
 > [!NOTE]
 > `Excludes.txt` と `Whitelist.txt` が同時に存在する場合，`Whitelist.txt` が優先されてホワイトリストモードになります．この場合 `Excludes.txt` は無視されます．
 
-#### `全フォントリスト.exa` について
+
+## 同梱のエイリアスファイルについて
+### `全フォントリスト.exa`
 
 タイムラインにドラッグ&ドロップしてメインウィンドウに表示させるとスクリプトが動いて，コンソールに現在ドロップダウンリストから選択可能なフォント一覧を出力できるエイリアスファイルです．フォントリスト作成の補助に利用してください．
 
@@ -120,7 +122,7 @@ khsk様の [LocalFont プラグイン](https://github.com/khsk/AviUtl-LocalFontP
   ```
   </details>
 
-## `localfont2のバージョン確認.exa` について
+### `localfont2のバージョン確認.exa`
 
 タイムラインにドラッグ&ドロップするとテキストオブジェクトになるエイリアスファイルです．現在導入されている `localfont2.aul` ファイルのバージョンを表示するスクリプトが書かれています．更新確認などに利用してください．
 
@@ -319,6 +321,50 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+## Lua 5.1/5.2
+
+https://www.lua.org
+
+---
+
+The MIT License (MIT)
+
+Copyright © 1994–2023 Lua.org, PUC-Rio.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. 
+
+## LuaJIT
+
+https://luajit.org
+
+---
+
+The MIT License (MIT)
+
+Copyright (C) 2005-2023 Mike Pall. All rights reserved.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
 
 
 #  連絡・バグ報告
