@@ -1,8 +1,22 @@
 # Local Font 2 AviUtl プラグイン
 
-システムにインストールされていないフォントを一時的に AviUtl で使えるようにするプラグインです．`Font` フォルダに入っているフォントファイルのみを追加します．
+AviUtl のフォント管理を便利なように調整できるプラグインです．
 
-逆にシステムにインストールされているけれどAviUtlでは使う予定のないフォントを，テキストオブジェクトのドロップダウンリストから隠すこともできます．
+1.  システムにインストールされていないフォントを一時的に AviUtl で使えるようにできます．
+
+    `Font` フォルダに入っているフォントファイルを，AviUtl のみで使えるように追加します．
+
+1.  逆にシステムにインストールされているけれどAviUtlでは使う予定のないフォントを，テキストオブジェクトのドロップダウンリストから隠すこともできます．
+
+    `Excludes.txt` ファイルに除外フォントを列挙することで，隠すことができます．
+
+    - `Whitelist.txt` で「ホワイトリスト」での指定も可能です．
+
+1.  フォントにエイリアス名（別名 / ニックネーム）を付けることができます．
+
+    - よく使うフォントを，リストの探しやすい位置に並ぶような名前に登録できます．
+    - 「字幕用」「本文用」など目的特化の名前を設定できます．
+    - フォント名が長すぎて (Shift JIS で 32 バイト以上) AviUtl では本来扱えなかったフォントも，短い名前のエイリアス名を割り当てると使用することができるようになります．
 
 khsk様の [LocalFont プラグイン](https://github.com/khsk/AviUtl-LocalFontPlugin)の拡張版です．
 
@@ -80,6 +94,21 @@ khsk様の [LocalFont プラグイン](https://github.com/khsk/AviUtl-LocalFontP
 > [!NOTE]
 > `Excludes.txt` と `Whitelist.txt` が同時に存在する場合，`Whitelist.txt` が優先されてホワイトリストモードになります．この場合 `Excludes.txt` は無視されます．
 
+### フォントにエイリアス名を付ける
+
+`Fonts` フォルダ内の `Aliases.txt` に `エイリアス名 = フォント名` の形式で1行ずつ記述してください．
+
+- 記述例:
+
+  ```
+  // Aliases.txt
+  // ↓エイリアス指定は1行に1つずつ記述してください．
+  本文用フォント = メイリオ
+  記号用フォント = Segoe Fluent Icons
+  ```
+記述法に関しては `Aliases.txt` 内のコメントにも説明があるので，そちらもご確認ください．
+
+- エンコード形式は UTF-8 です．バイト順マーク (BOM) の有無は問いません．
 
 ## 同梱のエイリアスファイルについて
 ### `全フォントリスト.exa`
@@ -92,33 +121,28 @@ khsk様の [LocalFont プラグイン](https://github.com/khsk/AviUtl-LocalFontP
   <summary>実行する Lua スクリプトは次の通りです（クリックで表示）．</summary>
 
   ```lua
-  local c,ffi,err=pcall(require,"ffi");
-  if not _PATCH then err="patch.aul が必要です．";
-  elseif not c then err="LuaJIT が必要です．";
+  local c,ffi,e=pcall(require,"ffi")
+  if not _PATCH then e="patch.aul が必要です．"
+  elseif not c then e="LuaJIT が必要です．"
   elseif not made_output then
-      debug_print("フォント出力中...");
-      ffi.cdef[[
-          typedef struct {
-              char pad[28];
-              char lfFaceName[32];
-          } LOGFONTA;
-          typedef int(__stdcall *FONTENUMPROCA)(LOGFONTA*,void*,int,int);
-          int EnumFontFamiliesA(void*,const char*,FONTENUMPROCA,int);
-          void* GetDC(void*);
-          int ReleaseDC(void*,void*);
-      ]];
-      local cb,hdc=ffi.cast("FONTENUMPROCA",function(lf,_,_,_)
-          local str=ffi.string(lf.lfFaceName);
-          if str:sub(1,1)~="@" then table.insert(c,str.."\n") end
-          return 1;
-      end),ffi.C.GetDC(nil);
-      c={}; ffi.C.EnumFontFamiliesA(hdc,nil,cb,0);
-      cb:free(); ffi.C.ReleaseDC(nil,hdc);
-      table.sort(c); io.write(table.concat(c));
-      debug_print(#c.."個のフォント名を出力．");
-      made_output=true;
+    debug_print"フォント出力中..."
+    ffi.cdef[[
+      typedef struct { char _[28]; wchar_t lfFaceName[32]; } LOGFONTW;
+      typedef int(__stdcall *FONTENUMPROCW)(LOGFONTW*,void*,int,int);
+      int EnumFontFamiliesW(void*,char*,FONTENUMPROCW,int);
+      void* GetDC(void*); int ReleaseDC(void*,void*);
+      int WideCharToMultiByte(int,int,wchar_t*,int,char*,int,char*,int*);
+    ]]
+    local cb,dc=ffi.cast("FONTENUMPROCW",function(lf,_,_,_)
+      local s=ffi.new"char[64]" ffi.C.WideCharToMultiByte(0,0,lf.lfFaceName,-1,s,64,nil,nil)
+      s=ffi.string(s) if s:sub(1,1)~="@" then table.insert(c,s.."\n") end
+      return 1
+    end),ffi.C.GetDC(nil)
+    c={} ffi.C.EnumFontFamiliesW(dc,nil,cb,0) ffi.C.ReleaseDC(nil,dc) cb:free()
+    table.sort(c) io.write(table.concat(c))
+    debug_print(#c.."個のフォント名を出力．") made_output=true
   end
-  obj.load("text",err or "フォント名を出力しました．\nコンソールを確認してください．");
+  obj.load("text",e or "フォント名を出力しました．\nコンソールを確認してください．")
   ```
   </details>
 
@@ -154,18 +178,25 @@ khsk様の [LocalFont プラグイン](https://github.com/khsk/AviUtl-LocalFontP
 
 ## その他
 
-1. フォントの除外機能は，フォントを設定ダイアログのドロップダウンリストから「隠す」だけであって，制御文字 `<s,フォント名>` やスクリプトの `obj.setfont("フォント名",34)` などを利用して使うことは可能です．
+1.  フォントの除外機能は，フォントを設定ダイアログのドロップダウンリストから「隠す」だけであって，制御文字 `<s,フォント名>` やスクリプトの `obj.setfont("フォント名",34)` などを利用して使うことは可能です．
 
-1. oov様の[テキスト編集補助プラグイン](https://github.com/oov/aviutl_textassist)のフォントリストからも隠せます．
+1.  oov様の[テキスト編集補助プラグイン](https://github.com/oov/aviutl_textassist)のフォントリストからも隠せます．
 
-> [!NOTE]
-> 追加したフォントを除外リストに入れた場合，ドロップダウンリストには表示されませんが，制御文字 `<s>` や スクリプト `obj.setfont()` などでは使えるようになります．
+1.  追加したフォントを除外リストに入れた場合，ドロップダウンリストには表示されませんが，制御文字 `<s>` や スクリプト `obj.setfont()` などでは使えるようになります．
+
+1.  除外リストにはエイリアス名を指定することもできます．こちらも同様に，ドロップダウンリストには表示されませんが制御文字などで使用可能です．
 
 ## 謝辞
 
 このプラグインのフォントの一時追加機能は，アイデア，実装方法を含めて khsk様の [LocalFont プラグイン](https://github.com/khsk/AviUtl-LocalFontPlugin)のものを流用しています．このような場で恐縮ですが大変便利なプラグインの公開，感謝申し上げます．
 
 ## 改版履歴
+
+- **v1.30** (2025-01-??)
+
+  - フォントにエイリアス名を付ける機能を追加．
+
+    `Fonts` フォルダ内の `Aliases.txt` にエイリアス指定を記述してください．
 
 - **v1.20** (2024-05-09)
 
