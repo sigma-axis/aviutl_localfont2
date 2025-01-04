@@ -16,7 +16,7 @@ AviUtl のフォント管理を便利なように調整できるプラグイン�
 
     - よく使うフォントを，リストの探しやすい位置に並ぶような名前に登録できます．
     - 「字幕用」「本文用」など目的特化の名前を設定できます．
-    - フォント名が長すぎて (Shift JIS で 32 バイト以上) AviUtl では本来扱えなかったフォントも，短い名前のエイリアス名を割り当てると使用することができるようになります．
+    - フォント名が長すぎて (Shift-JIS で 32 バイト以上) AviUtl では本来扱えなかったフォントも，短い名前のエイリアス名を割り当てると使用することができるようになります．
 
 khsk様の [LocalFont プラグイン](https://github.com/khsk/AviUtl-LocalFontPlugin)の拡張版です．
 
@@ -199,6 +199,8 @@ khsk様の [LocalFont プラグイン](https://github.com/khsk/AviUtl-LocalFontP
 
     `Fonts` フォルダ内の `Aliases.txt` にエイリアス指定を記述してください．
 
+  - `全フォントリスト.exa` も更新，Shift-JIS では長すぎたフォント名も出力できるように．
+
 - **v1.20** (2024-05-09)
 
   **`Excludes.txt` (あるいは `Whitelist.txt`) のエンコード形式を以前の Shift-JIS から UTF-8 に変更しました．v1.14 以前から更新する際にはエンコード形式の変換をお願いします．**
@@ -285,7 +287,7 @@ khsk様の [LocalFont プラグイン](https://github.com/khsk/AviUtl-LocalFontP
 
 The MIT License (MIT)
 
-Copyright (C) 2024 sigma-axis
+Copyright (C) 2024-2025 sigma-axis
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
