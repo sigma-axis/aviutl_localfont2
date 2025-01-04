@@ -51,6 +51,7 @@ khsk様の [LocalFont プラグイン](https://github.com/khsk/AviUtl-LocalFontP
 
   ┣ :gear: `localfont2.aul`<br>
 ┣ :open_file_folder: `Fonts`<br>
+┃&numsp;┣ :memo: `Aliases.txt`<br>
 ┃&numsp;┣ :memo: `Excludes.txt`<br>
 ┃&numsp;┣ :page_facing_up: フォント1<br>
 ┃&numsp;┣ :page_facing_up: フォント2<br>
