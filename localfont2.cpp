@@ -308,12 +308,23 @@ public:
 inline class {
 	struct names {
 		std::wstring alias;
-		std::wstring font;
+		std::wstring font; // record as @-headed.
 		names() = default;
 		names(std::wstring_view a, std::wstring_view f) : alias{ a }, font{ f } {}
 	};
 	std::map<std::wstring, names> list{};
 	std::map<HGDIOBJ, std::wstring> fake_fonts{};
+	static std::wstring at_headed(std::wstring_view name) {
+		// return the at-headed std::wstring.
+		auto ret = std::wstring{};
+		ret.resize_and_overwrite(name.length() + 1,
+		[&](wchar_t* p, size_t n) {
+			*p = at_char;
+			std::char_traits<wchar_t>::copy(p + 1, name.data(), n - 1);
+			return n;
+		});
+		return ret;
+	}
 
 	// fallback value of ::EnumFontFamiliesA/W for aliases.
 	static inline std::unique_ptr<std::tuple<LOGFONTW, TEXTMETRICW, LOGFONTA, TEXTMETRICA, DWORD>> info_fallback{};
@@ -364,7 +375,7 @@ inline class {
 				(len = encode_sys::cnt_narrow_str(alias.data(), alias.size())) == 0 ||
 				len + 1 >= font_length_max - 1 || target.size() >= font_length_max - 1 ||
 				// add an entry, but disallowing duplicated element.
-				!list.try_emplace(to_lower(alias), alias, target).second) {
+				!list.try_emplace(to_lower(alias), alias, at_headed(target)).second) {
 				::printf_s("[Local Font 2]: Aliases.txt の [%d] 行目は無視されます: %s\n",
 					file.current_line, encode_sys::from_wide_str(span.data(), span.size()).c_str());
 			}
@@ -381,34 +392,47 @@ public:
 		prepare_info_fallback();
 	}
 
-	template<size_t N>
-	bool operator()(wchar_t const* alias, wchar_t(&font_name)[N]) const {
+	wchar_t const* operator()(wchar_t const* alias) const
+	{
 		// normalize the (possible) alias.
 		auto buf = trim_string(alias);
 		bool const has_at = buf.length() > 0 && buf[0] == at_char;
 		if (has_at) buf = buf.substr(1);
 
 		auto const it = list.find(to_lower(buf));
-		if (it == list.end()) return false; // not an alias.
+		if (it == list.end()) return nullptr; // not an alias.
 
-		// replace with the target name.
-		if (has_at) font_name[0] = at_char;
-		::wcscpy_s(has_at ? &font_name[1] : font_name, has_at ? N - 1 : N, it->second.font.c_str());
-		return true;
+		// return the target name, removing the heading '@' if necessary.
+		return it->second.font.c_str() + (has_at ? 0 : 1);
+	}
+	wchar_t const* operator()(char const* alias) const {
+		return (*this)(encode_sys::to_wide_str(alias).c_str());
+	}
+	template<size_t N>
+	bool operator()(wchar_t const* alias, wchar_t(&font_name)[N]) const
+	{
+		if (auto target = (*this)(alias); target != nullptr) {
+			// copy to the destination buffer.
+			::wcscpy_s(font_name, target);
+			return true;
+		}
+		else return false; // not an alias.
 	}
 
+	// on_alias is a function object called as:
+	// on_alias(std::basic_string_view<CharT> alias, std::basic_string_view<CharT> font_name)
+	// both alias and font_name are null-terminated at the end of string_view.
+	// it returns bool to indicate if or not to continue the iteration.
 	template<char_type CharT>
-	int for_alias(auto const& on_alias) const {
+	void for_alias(auto const& on_alias) const {
 		if constexpr (std::same_as<CharT, wchar_t>) {
-			int ret = 1;
 			for (auto const& [_, v] : list) {
-				ret = on_alias(v.alias, v.font);
-				if (ret == 0) break;
+				if (!on_alias(std::wstring_view{ v.alias }, std::wstring_view{ v.font }.substr(1)))
+					break;
 			}
-			return ret;
 		}
-		else return for_alias<wchar_t>([&](std::wstring const& k, std::wstring const& v) {
-			return on_alias(k, encode_sys::from_wide_str(v));
+		else for_alias<wchar_t>([&](std::wstring_view const& k, std::wstring_view const& v) {
+			return on_alias(k, std::string_view{ encode_sys::from_wide_str(v.data()) });
 		});
 	}
 
@@ -498,7 +522,7 @@ protected:
 		if (excludes.count() > 0) {
 			auto cxt = std::pair{ proc, lparam };
 			ret = original(hdc, logfont, [](auto lf, auto metric, auto type, LPARAM lparam) {
-				if (excludes(lf->lfFaceName)) return 1;
+				if (excludes(lf->lfFaceName) || aliases(lf->lfFaceName) != nullptr) return 1;
 
 				// default behavior otherwise.
 				auto [proc, lp] = *reinterpret_cast<decltype(cxt)*>(lparam);
@@ -511,15 +535,15 @@ protected:
 		if (ret != 0 && aliases.count() > 0)
 			aliases.for_alias<CharT>([&](auto const& alias, auto const& font_name) {
 				// see if it should be excluded.
-				if (excludes(alias)) return 1;
+				if (excludes(alias)) return true;
 
 				// first try to search with the target name, and call back with the first match.
 				auto cxt = std::tuple{ proc, lparam, &alias, &ret };
-				if (original(hdc, font_name.c_str(), [](auto lf, auto metric, auto type, LPARAM lparam) {
+				if (original(hdc, font_name.data(), [](auto lf, auto metric, auto type, LPARAM lparam) {
 					auto& [proc, lp, alias, ret] = *reinterpret_cast<decltype(cxt)*>(lparam);
 
 					auto lf2 = *lf;
-					copy_from_wide(lf2.lfFaceName, alias->c_str());
+					copy_from_wide(lf2.lfFaceName, alias->data());
 					*ret = proc(&lf2, metric, type, lp);
 
 					// only need the first match. stop the enumeration.
@@ -527,11 +551,11 @@ protected:
 				}, reinterpret_cast<LPARAM>(&cxt)) != 0) { // returns TRUE if no match found.
 					// if no match was found, call back with the fallback data.
 					auto const& [lf, metric, type] = aliases.font_info_fallback<CharT>();
-					copy_from_wide(lf.lfFaceName, alias.c_str());
+					copy_from_wide(lf.lfFaceName, alias.data());
 					ret = proc(&lf, &metric, type, lparam);
 				}
 
-				return ret;
+				return ret != 0;
 			});
 		return ret;
 	}
@@ -729,5 +753,5 @@ BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwNotification, LPVOID lpReserved
 ////////////////////////////////
 extern "C" __declspec(dllexport) char const* __stdcall ThisAulVersion(void)
 {
-	return "v1.30-beta2";
+	return "v1.30-beta3";
 }
