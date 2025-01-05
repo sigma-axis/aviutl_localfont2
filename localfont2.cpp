@@ -522,7 +522,7 @@ protected:
 		if (excludes.count() > 0) {
 			auto cxt = std::pair{ proc, lparam };
 			ret = original(hdc, logfont, [](auto lf, auto metric, auto type, LPARAM lparam) {
-				if (excludes(lf->lfFaceName) || aliases(lf->lfFaceName) != nullptr) return 1;
+				if (excludes(lf->lfFaceName) || (aliases.count() > 0 && aliases(lf->lfFaceName) != nullptr)) return 1;
 
 				// default behavior otherwise.
 				auto [proc, lp] = *reinterpret_cast<decltype(cxt)*>(lparam);
@@ -752,5 +752,5 @@ BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwNotification, LPVOID lpReserved
 ////////////////////////////////
 extern "C" __declspec(dllexport) char const* __stdcall ThisAulVersion(void)
 {
-	return "v1.31-beta1";
+	return "v1.31-beta2";
 }
