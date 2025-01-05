@@ -408,12 +408,12 @@ public:
 	wchar_t const* operator()(char const* alias) const {
 		return (*this)(encode_sys::to_wide_str(alias).c_str());
 	}
-	template<size_t N>
-	bool operator()(wchar_t const* alias, wchar_t(&font_name)[N]) const
+	template<char_type CharT, size_t N>
+	bool operator()(CharT const* alias, CharT(&font_name)[N]) const
 	{
 		if (auto target = (*this)(alias); target != nullptr) {
 			// copy to the destination buffer.
-			::wcscpy_s(font_name, target);
+			copy_from_wide(font_name, target);
 			return true;
 		}
 		else return false; // not an alias.
@@ -574,7 +574,6 @@ constexpr struct : EnumFontFamiliesBase {
 } enum_font_families_W;
 
 // CreateFontIndirectA/W.
-// not sure this is necessary.
 constexpr struct CreateFontIndirectW : DetourHelper {
 	static inline auto* original = &::CreateFontIndirectW;
 	static HFONT WINAPI detour(LOGFONTW const* lplf)
@@ -753,5 +752,5 @@ BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwNotification, LPVOID lpReserved
 ////////////////////////////////
 extern "C" __declspec(dllexport) char const* __stdcall ThisAulVersion(void)
 {
-	return "v1.30";
+	return "v1.31-beta1";
 }
