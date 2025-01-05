@@ -396,13 +396,6 @@ public:
 		::wcscpy_s(has_at ? &font_name[1] : font_name, has_at ? N - 1 : N, it->second.font.c_str());
 		return true;
 	}
-	template<size_t N>
-	bool operator()(char const* alias, char(&font_name)[N]) const {
-		wchar_t buf[N];
-		return encode_sys::to_wide_str(buf, alias) != 0 &&
-			(*this)(buf, buf) &&
-			encode_sys::from_wide_str(font_name, buf) != 0;
-	}
 
 	template<char_type CharT>
 	int for_alias(auto const& on_alias) const {
