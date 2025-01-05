@@ -362,7 +362,7 @@ inline class {
 				(alias = trim_string(span.substr(0, pos))).empty() || alias[0] == at_char ||
 				(target = trim_string(span.substr(pos + 1))).empty() || target[0] == at_char ||
 				(len = encode_sys::cnt_narrow_str(alias.data(), alias.size())) == 0 ||
-				len + 1 >= font_length_max || target.size() >= font_length_max ||
+				len + 1 >= font_length_max - 1 || target.size() >= font_length_max - 1 ||
 				// add an entry, but disallowing duplicated element.
 				!list.try_emplace(to_lower(alias), alias, target).second) {
 				::printf_s("[Local Font 2]: Aliases.txt の [%d] 行目は無視されます: %s\n",
@@ -729,5 +729,5 @@ BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwNotification, LPVOID lpReserved
 ////////////////////////////////
 extern "C" __declspec(dllexport) char const* __stdcall ThisAulVersion(void)
 {
-	return "v1.30-beta1";
+	return "v1.30-beta2";
 }
