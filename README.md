@@ -68,7 +68,7 @@ khsk様の [LocalFont プラグイン](https://github.com/khsk/AviUtl-LocalFontP
 
   `.fon` `.fnt` `.ttf` `.ttc` `.fot` `.otf` `.mmm` `.pfb` `.pfm`
 
-- フォント以外のファイルは無視します (`Fonts` 直下の `Excludes.txt` と `Whitelist.txt` を除く).
+- フォント以外のファイルは無視します (`Fonts` 直下の `Excludes.txt` と `Whitelist.txt`, `Aliases.txt` を除く).
 
 ### フォントの除外方法
 
