@@ -751,5 +751,5 @@ BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwNotification, LPVOID lpReserved
 ////////////////////////////////
 extern "C" __declspec(dllexport) char const* __stdcall ThisAulVersion(void)
 {
-	return "v1.31-beta3";
+	return "v1.31";
 }
