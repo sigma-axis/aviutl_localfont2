@@ -717,7 +717,6 @@ inline void on_detach()
 {
 	// restore the API.
 	if (excludes.count() > 0 || aliases.count() > 0) {
-		// will never be called probably.
 		if (aliases.count() > 0) {
 			DetourHelper::Detach(enum_font_families_A, enum_font_families_W,
 				create_font_indirect_A, create_font_indirect_W,
@@ -740,7 +739,7 @@ BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwNotification, LPVOID lpReserved
 		on_attach(hInstance);
 		break;
 	case DLL_PROCESS_DETACH:
-		if (lpReserved == nullptr) on_detach();
+		on_detach();
 		break;
 	}
 	return TRUE;
@@ -752,5 +751,5 @@ BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwNotification, LPVOID lpReserved
 ////////////////////////////////
 extern "C" __declspec(dllexport) char const* __stdcall ThisAulVersion(void)
 {
-	return "v1.31-beta2";
+	return "v1.31-beta3";
 }
