@@ -641,7 +641,7 @@ protected:
 	template<auto& original, class LogFontT>
 	static int WINAPI detour_template(HGDIOBJ hgdiobj, int cbBuffer, LogFontT* lpvObject)
 	{
-		if (hgdiobj != nullptr && cbBuffer == sizeof(LogFontT) && hgdiobj != nullptr) {
+		if (hgdiobj != nullptr && cbBuffer == sizeof(LogFontT) && lpvObject != nullptr) {
 			if (auto alias = aliases.find_fake_font(hgdiobj); alias != nullptr) {
 				// if it's a font with a fake name, return the fake LOGFONT.
 				auto ret = original(hgdiobj, sizeof(LogFontT), lpvObject);
@@ -751,5 +751,5 @@ BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwNotification, LPVOID lpReserved
 ////////////////////////////////
 extern "C" __declspec(dllexport) char const* __stdcall ThisAulVersion(void)
 {
-	return "v1.31";
+	return "v1.32-beta1";
 }
